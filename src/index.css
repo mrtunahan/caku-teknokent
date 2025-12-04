@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* Tüm sayfanın kenar boşluklarını sıfırla */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden; /* Yatay kaydırma çubuğunu engelle */
+}
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll {
+  display: flex;
+  width: max-content; /* İçerik kadar genişlik */
+  animation: scroll 30s linear infinite; /* 30 saniyede bir tur atar */
+}
+
+/* Mouse üzerine gelince durması için (İstersen kaldırabilirsin) */
+.animate-scroll:hover {
+  animation-play-state: paused;
+}
+/* Google Translate Çirkin Üst Barını Gizle */
+.goog-te-banner-frame.skiptranslate {
+    display: none !important;
+} 
+body {
+    top: 0px !important; 
+}
+
+/* Google logosunu ve gereksiz metinleri gizle */
+.goog-te-gadget-icon {
+    display: none !important;
+}
+.goog-te-gadget-simple {
+    background-color: transparent !important;
+    border: none !important;
+    font-size: 14px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    cursor: pointer !important;
+}
+
+/* Navbar Şeffafken Yazı Rengi */
+.bg-transparent .goog-te-gadget-simple span {
+    color: white !important; /* Şeffaf modda beyaz yazı */
+}
+
+/* Navbar Beyazken Yazı Rengi */
+.bg-white .goog-te-gadget-simple span {
+    color: #333 !important; /* Beyaz modda siyah yazı */
+}
+
+/* Dil seçici ok işaretini düzelt */
+.goog-te-gadget-simple .goog-te-menu-value span:last-child {
+   display: none; /* Varsayılan oku gizle */
+}
+/* Google Translate Üst Barını Gizle */
+.goog-te-banner-frame.skiptranslate {
+    display: none !important;
+} 
+body {
+    top: 0px !important; 
+}
+
+/* Tooltip ve gereksiz popup'ları gizle */
+.goog-tooltip {
+    display: none !important;
+}
+.goog-te-balloon-frame {
+    display: none !important;
+}
+
+/* Sayfa yüklendiğinde font bozulmalarını önle */
+font {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  box-sizing: content-box !important;
+}
