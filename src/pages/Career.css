@@ -1,0 +1,241 @@
+/* Career.css */
+.career-container {
+  max-width: 1000px;
+  /* Üstten 140px boşluk, sağ/sol otomatik, alttan 40px */
+  margin: 140px auto 40px auto; 
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+}
+
+/* --- SEÇİM KARTLARI (EN ÜST) --- */
+.selection-container {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-bottom: 50px;
+  flex-wrap: wrap;
+}
+
+.selection-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  width: 300px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.selection-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  border-color: #007bff;
+}
+
+.card-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.selection-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.selection-card p {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Mavi vurgu çizgisi */
+.selection-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: #007bff;
+  transform: scaleX(0);
+  transition: transform 0.3s;
+}
+
+.selection-card:hover::after {
+  transform: scaleX(1);
+}
+
+/* --- FORM ALANI --- */
+.form-wrapper {
+  background: #fff;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+  position: relative;
+  animation: slideDown 0.4s ease-out;
+}
+
+.back-btn {
+  background: transparent;
+  border: 1px solid #ddd;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #555;
+  transition: 0.2s;
+}
+
+.back-btn:hover {
+  background: #f8f9fa;
+  color: #000;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #444;
+}
+
+.form-group input, 
+.form-group select, 
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+  box-sizing: border-box; /* Taşmayı engeller */
+}
+
+.form-group input:focus, 
+.form-group select:focus, 
+.form-group textarea:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+.submit-btn {
+  background-color: #007bff;
+  color: white;
+  padding: 14px 30px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  width: 100%;
+  transition: background 0.3s;
+}
+
+.submit-btn:hover {
+  background-color: #0056b3;
+}
+
+/* --- AÇIK POZİSYONLAR LİSTESİ --- */
+.postings-section {
+  margin-top: 60px;
+  border-top: 1px solid #eaeaea;
+  padding-top: 40px;
+}
+
+.section-title {
+  text-align: center;
+  font-size: 1.8rem;
+  color: #333;
+  margin-bottom: 30px;
+}
+
+.posting-card {
+  background: #fff;
+  border: 1px solid #eee;
+  padding: 25px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  transition: box-shadow 0.2s;
+}
+
+.posting-card:hover {
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  border-color: #b8daff;
+}
+
+.posting-info h4 {
+  margin: 0 0 5px 0;
+  font-size: 1.2rem;
+  color: #2c3e50;
+}
+
+.posting-company {
+  color: #007bff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.posting-type {
+  display: inline-block;
+  background: #f0f2f5;
+  color: #555;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-top: 8px;
+  margin-right: 10px;
+}
+
+.posting-date {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.apply-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: bold;
+  border: 1px solid #007bff;
+  padding: 8px 20px;
+  border-radius: 50px;
+  transition: all 0.2s;
+}
+
+.apply-link:hover {
+  background: #007bff;
+  color: #fff;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobil Uyumluluk */
+@media (max-width: 768px) {
+  .posting-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  .apply-link {
+    width: 100%;
+    text-align: center;
+  }
+}

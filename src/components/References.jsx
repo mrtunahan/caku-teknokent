@@ -1,32 +1,32 @@
 const References = () => {
   // 1. PAYDAŞLAR LİSTESİ (SABİT - Senin yerel dosyaların)
   const stakeholders = [
-    { name: "Çankırı Karatekin Üniversitesi", logo: "/paydas/caku.png" },
-    { name: "Çankırı Yakınkent OSB", logo: "/paydas/yakin.jpg" },
-    { name: "Şabanözü OSB", logo: "/paydas/saban.png" },
-    { name: "Korgun OSB", logo: "/paydas/korgun.jpg" }
+    { name: "Çankırı Karatekin Üniversitesi", logo: "paydas/caku.png" },
+    { name: "Çankırı Yakınkent OSB", logo: "paydas/yakin.jpg" },
+    { name: "Şabanözü OSB", logo: "paydas/saban.png" },
+    { name: "Korgun OSB", logo: "paydas/korgun.jpg" }
   ];
 
   // 2. FİRMALAR LİSTESİ (KAYAN - Senin yerel dosyaların)
   const companies = [
-    { name: "LST Yazılım", logo: "/logos/lst.jpeg" },
-    { name: "Spectrum Consulting", logo: "/logos/spectrum.png" },
-    { name: "3D Robotik", logo: "/logos/3D-Robotik-Logo.png" },
-    { name: "Bilişim School", logo: "/logos/bilisim_school.png" },
-    { name: "BiSoft", logo: "/logos/bisoft.png" },
-    { name: "Biveri", logo: "/logos/Biveri-logo.png" },
-    { name: "Ortana", logo: "/logos/Ortana-logo.jpg" },
-    { name: "Yurtsemen", logo: "/logos/yurtsemen.png" },
-    { name: "StockMount", logo: "/logos/stochmount.png" },
-    { name: "ProMIS", logo: "/logos/promis.png" },
-    { name: "Pelit", logo: "/logos/pelit.png" },
-    { name: "Neophran", logo: "/logos/neophran.png" },
-    { name: "Miva", logo: "/logos/miva.png" },
-    { name: "Metis", logo: "/logos/metis_bilisim.png" },
-    { name: "Med Mar", logo: "/logos/med_mar.png" },
-    { name: "Lobi Bilişim", logo: "/logos/lobi_bilisim.png" },
-    { name: "KhanTech", logo: "khan_tech.png" },
-    { name: "ivvo", logo: "/logos/ivvo.png" },
+    { name: "LST Yazılım", logo: "logos/lst.jpeg" },
+    { name: "Spectrum Consulting", logo: "logos/spectrum.png" },
+    { name: "3D Robotik", logo: "logos/3D-Robotik-Logo.png" },
+    { name: "Bilişim School", logo: "logos/bilisim_school.png" },
+    { name: "BiSoft", logo: "logos/bisoft.png" },
+    { name: "Biveri", logo: "logos/Biveri-logo.png" },
+    { name: "Ortana", logo: "logos/Ortana-logo.jpg" },
+    { name: "Yurtsemen", logo: "logos/yurtsemen.png" },
+    { name: "StockMount", logo: "logos/stochmount.png" },
+    { name: "ProMIS", logo: "logos/promis.png" },
+    { name: "Pelit", logo: "logos/pelit.png" },
+    { name: "Neophran", logo: "logos/neophran.png" },
+    { name: "Miva", logo: "logos/miva.png" },
+    { name: "Metis", logo: "logos/metis_bilisim.png" },
+    { name: "Med Mar", logo: "logos/med_mar.png" },
+    { name: "Lobi Bilişim", logo: "logos/lobi_bilisim.png" },
+    { name: "KhanTech", logo: "logos/khan_tech.png" },
+    { name: "ivvo", logo: "logos/ivvo.png" },
   ];
 
   // Sonsuz döngü pürüzsüz olsun diye firmalar listesini iki kere birleştiriyoruz

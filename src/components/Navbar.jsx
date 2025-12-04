@@ -29,39 +29,35 @@ const Navbar = () => {
       name: 'KURUMSAL', 
       link: '#', 
       submenu: [
-        { name: 'Hakkımızda', link: '#' },
-        { name: 'Misyon – Vizyon- Hedeflerimiz', link: '#' },
-        { name: 'Ortaklarımız', link: '#' },
-        { name: 'Yönetim', link: '/yonetim-kurulu' }, // Mevcut Yönetim Kurulu sayfasına bağladık
-        { name: 'Paydaşlarımız', link: '#' },
-        { name: 'Ofisler ve Altyapılar', link: '#' },
-        { name: 'Kurumsal Kimlik', link: '#' },
-        { name: 'Kişisel Verileri Koruma Kanunu', link: '#' }
+        { name: 'Hakkımızda', link: '/hakkimizda' },
+        { name: 'Misyon – Vizyon- Hedeflerimiz', link: '/misyon-vizyon' },
+        { name: 'Ortaklarımız', link: '/ortaklarimiz' },
+        { name: 'Yönetim', link: '/yonetim-kurulu' },
+        { name: 'Paydaşlarımız', link: '/ortaklarimiz' },
+        { name: 'Ofisler ve Altyapılar', link: '/ofisler' },
+        { name: 'Kurumsal Kimlik', link: '/kurumsal-kimlik' }, // Güncellendi
+        { name: 'Kişisel Verileri Koruma Kanunu', link: '/kvkk' }
       ]
     },
     { 
       name: 'MEVZUAT', 
-      link: '#',
+      link: '/kanun-ve-yonetmelikler',
       submenu: [
-        { name: 'Duyurular', link: '#' },
-        { name: 'Etkinlikler', link: '#' },
-        { name: 'Basında Biz', link: '#' }
+        { name: 'Duyurular', link: '/duyurular' }, // Güncellendi
+        { name: 'Etkinlikler', link: '/etkinlikler' }, // Güncellendi
+        { name: 'Basında Biz', link: '/basinda-biz' } // Güncellendi
       ]
     },
     { 
       name: 'FİRMALAR', 
       link: '#',
       submenu: [
-        { name: 'Firma Listesi', link: '#' },
-        { name: 'Firma Haberleri', link: '#' }
+        { name: 'Firma Listesi', link: '/firma-listesi' },
+        { name: 'Firma Haberleri', link: '/firma-haberleri' } // Güncellendi
       ] 
     },
-    { name: 'KARİYER', link: '#' 
-
-    },
-    { name: 'İLETİŞİM', link: '#' 
-        
-    },
+    { name: 'KARİYER', link: '/kariyer' }, // Güncellendi
+    { name: 'İLETİŞİM', link: '/iletisim' },
   ];
   const handleLanguageChange = (langCode) => {
     // Google Translate'in gizli seçim kutusunu bul
@@ -88,7 +84,7 @@ const Navbar = () => {
              
              <a href="https://www.milliteknolojiakademisi.gov.tr/" target="_blank" rel="noopener noreferrer">
                <img 
-                 src="/logos/tc1.png" 
+                 src="logos/tc1.png" 
                  alt="Milli Teknoloji Hamlesi" 
                  // BURAYI GÜNCELLEDİK: ÇAKÜ logosuyla aynı sınıf yapısı
                  className={`h-12 w-auto transition-all duration-300 ${
