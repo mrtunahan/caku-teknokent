@@ -1,36 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import PageHeader from "../components/PageHeader";
 import { FaSearch, FaBuilding } from "react-icons/fa";
 
 const CompanyList = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [companies, setCompanies] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Tüm Firmaların Listesi (References.jsx dosyasındaki verilerle eşitlendi)
-  const companies = [
-    { id: 1, name: "LST Yazılım", sector: "Yazılım & Bilişim", logo: "/logos/lst.jpeg" },
-    { id: 2, name: "BiSoft Bilgi Teknolojileri", sector: "Bilişim", logo: "/logos/bisoft.png" },
-    { id: 3, name: "Ortana Elektronik", sector: "Elektronik & ITS", logo: "/logos/Ortana-logo.jpg" },
-    { id: 4, name: "Spectrum Consulting", sector: "Danışmanlık", logo: "/logos/spectrum.png" },
-    { id: 5, name: "3D Robotik Otomasyon", sector: "Robotik & Otomasyon", logo: "/logos/3D-Robotik-Logo.png" },
-    { id: 6, name: "Bilişim School", sector: "Eğitim Teknolojileri", logo: "/logos/bilisim_school.png" },
-    { id: 7, name: "Biveri Veri Madenciliği", sector: "Veri Analitiği", logo: "/logos/Biveri-logo.png" },
-    { id: 8, name: "Yurtsemen", sector: "Yazılım", logo: "/logos/yurtsemen.png" },
-    { id: 9, name: "StockMount", sector: "E-Ticaret Yazılımları", logo: "/logos/stochmount.png" },
-    { id: 10, name: "ProMIS", sector: "Yazılım Çözümleri", logo: "/logos/promis.png" },
-    { id: 11, name: "Pelit", sector: "Ar-Ge", logo: "/logos/pelit.png" },
-    { id: 12, name: "Neophran", sector: "Yazılım", logo: "/logos/neophran.png" },
-    { id: 13, name: "Miva", sector: "Medya & Yazılım", logo: "/logos/miva.png" },
-    { id: 14, name: "Metis Bilişim", sector: "Bilişim Teknolojileri", logo: "/logos/metis_bilisim.png" },
-    { id: 15, name: "Med Mar", sector: "Medikal Teknoloji", logo: "/logos/med_mar.png" },
-    { id: 16, name: "Lobi Bilişim", sector: "Yazılım", logo: "/logos/lobi_bilisim.png" },
-    { id: 17, name: "KhanTech", sector: "Savunma & Teknoloji", logo: "khan_tech.png" },
-    { id: 18, name: "ivvo", sector: "Yazılım", logo: "/logos/ivvo.png" },
-  ];
+  // Verileri Backend'den Çek
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await axios.get("http://localhost:3000/api/companies");
+        if (response.data.success) {
+          setCompanies(response.data.data);
+        }
+      } catch (error) {
+        console.error("Firmalar yüklenemedi:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Arama filtresi fonksiyonu
+    fetchCompanies();
+  }, []);
+
+  // Resim URL Yardımcısı
+  const getLogoUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith("http")) return path;
+    return `http://localhost:3000/uploads/images/${path}`;
+  };
+
+  // Arama Filtresi
   const filteredCompanies = companies.filter(company =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.sector.toLowerCase().includes(searchTerm.toLowerCase())
+    (company.sector && company.sector.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -57,7 +63,9 @@ const CompanyList = () => {
         </div>
 
         {/* Firma Listesi (Grid) */}
-        {filteredCompanies.length > 0 ? (
+        {loading ? (
+          <div className="text-center text-gray-500 text-lg">Yükleniyor...</div>
+        ) : filteredCompanies.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {filteredCompanies.map((comp) => (
               <div 
@@ -66,17 +74,23 @@ const CompanyList = () => {
               >
                 {/* Logo Alanı */}
                 <div className="h-24 w-full flex items-center justify-center mb-6 p-2">
-                  <img 
-                    src={comp.logo} 
-                    alt={comp.name} 
-                    className="max-h-full max-w-full object-contain grayscale group-hover:grayscale-0 transition-all duration-500 opacity-80 group-hover:opacity-100"
-                    onError={(e) => { 
-                      e.target.style.display = 'none'; // Resim yoksa gizle
-                      e.target.nextSibling.style.display = 'flex'; // İkonu göster
-                    }} 
-                  />
-                  {/* Yedek İkon (Resim yüklenmezse görünür) */}
-                  <div className="hidden w-16 h-16 bg-gray-100 rounded-full items-center justify-center text-gray-300 text-2xl">
+                  {comp.logo_url ? (
+                    <img 
+                      src={getLogoUrl(comp.logo_url)} 
+                      alt={comp.name} 
+                      className="max-h-full max-w-full object-contain grayscale group-hover:grayscale-0 transition-all duration-500 opacity-80 group-hover:opacity-100"
+                      onError={(e) => { 
+                        e.target.style.display = 'none'; 
+                        e.target.nextSibling.style.display = 'flex'; 
+                      }} 
+                    />
+                  ) : null}
+                  
+                  {/* Yedek İkon (Resim yoksa veya yüklenmezse görünür) */}
+                  <div 
+                    className="w-16 h-16 bg-gray-100 rounded-full items-center justify-center text-gray-300 text-2xl"
+                    style={{ display: comp.logo_url ? 'none' : 'flex' }}
+                  >
                     <FaBuilding />
                   </div>
                 </div>

@@ -1,35 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const projectController = require('../controllers/projectController');
+const { protect } = require('../middleware/authMiddleware'); // Middleware'i ekledik
 
-// Yeni başvuru oluştur
-router.post('/applications', projectController.createApplication);
+// -- HERKESİN ERİŞEBİLECEĞİ ROTALAR (Public) --
+router.post('/applications', projectController.createApplication); // Başvuru yapmak herkese açık olmalı
 
-// Tüm başvuruları listele (filtreleme ve arama ile)
-router.get('/applications', projectController.getAllApplications);
-
-// Tekil başvuru getir
-router.get('/applications/:id', projectController.getApplicationById);
-
-// E-posta ile başvuru ara
-router.get('/applications/search/email', projectController.searchByEmail);
-
-// TC Kimlik No ile başvuru ara
-router.get('/applications/search/tc', projectController.searchByTC);
-
-// Başvuruyu güncelle (tüm alanlar)
-router.put('/applications/:id', projectController.updateApplication);
-
-// Başvuru durumunu güncelle
-router.patch('/applications/:id/status', projectController.updateApplicationStatus);
-
-// Başvuruyu sil
-router.delete('/applications/:id', projectController.deleteApplication);
-
-// İstatistikler
-router.get('/statistics/summary', projectController.getStatistics);
-
-// Proje alanlarına göre grupla
-router.get('/statistics/by-field', projectController.getApplicationsByField);
+// -- SADECE YÖNETİCİLERİN ERİŞEBİLECEĞİ ROTALAR (Protected) --
+// Araya 'protect' ekleyerek şifreli hale getirdik
+router.get('/applications', protect, projectController.getAllApplications);
+router.get('/applications/:id', protect, projectController.getApplicationById);
+router.get('/applications/search/email', protect, projectController.searchByEmail);
+router.get('/applications/search/tc', protect, projectController.searchByTC);
+router.put('/applications/:id', protect, projectController.updateApplication);
+router.patch('/applications/:id/status', protect, projectController.updateApplicationStatus);
+router.delete('/applications/:id', protect, projectController.deleteApplication);
+router.get('/statistics/summary', protect, projectController.getStatistics);
+router.get('/statistics/by-field', protect, projectController.getApplicationsByField);
 
 module.exports = router;

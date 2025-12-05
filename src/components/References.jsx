@@ -1,36 +1,47 @@
+import { useState, useEffect } from "react";
+import axios from "axios";
+
 const References = () => {
-  // 1. PAYDAŞLAR LİSTESİ (SABİT - Senin yerel dosyaların)
+  // 1. PAYDAŞLAR LİSTESİ (SABİT - Değişmez)
   const stakeholders = [
-    { name: "Çankırı Karatekin Üniversitesi", logo: "paydas/caku.png" },
-    { name: "Çankırı Yakınkent OSB", logo: "paydas/yakin.jpg" },
-    { name: "Şabanözü OSB", logo: "paydas/saban.png" },
-    { name: "Korgun OSB", logo: "paydas/korgun.jpg" }
+    { name: "Çankırı Karatekin Üniversitesi", logo: "/paydas/caku.png" },
+    { name: "Çankırı Yakınkent OSB", logo: "/paydas/yakin.jpg" },
+    { name: "Şabanözü OSB", logo: "/paydas/saban.png" },
+    { name: "Korgun OSB", logo: "/paydas/korgun.jpg" }
   ];
 
-  // 2. FİRMALAR LİSTESİ (KAYAN - Senin yerel dosyaların)
-  const companies = [
-    { name: "LST Yazılım", logo: "logos/lst.jpeg" },
-    { name: "Spectrum Consulting", logo: "logos/spectrum.png" },
-    { name: "3D Robotik", logo: "logos/3D-Robotik-Logo.png" },
-    { name: "Bilişim School", logo: "logos/bilisim_school.png" },
-    { name: "BiSoft", logo: "logos/bisoft.png" },
-    { name: "Biveri", logo: "logos/Biveri-logo.png" },
-    { name: "Ortana", logo: "logos/Ortana-logo.jpg" },
-    { name: "Yurtsemen", logo: "logos/yurtsemen.png" },
-    { name: "StockMount", logo: "logos/stochmount.png" },
-    { name: "ProMIS", logo: "logos/promis.png" },
-    { name: "Pelit", logo: "logos/pelit.png" },
-    { name: "Neophran", logo: "logos/neophran.png" },
-    { name: "Miva", logo: "logos/miva.png" },
-    { name: "Metis", logo: "logos/metis_bilisim.png" },
-    { name: "Med Mar", logo: "logos/med_mar.png" },
-    { name: "Lobi Bilişim", logo: "logos/lobi_bilisim.png" },
-    { name: "KhanTech", logo: "logos/khan_tech.png" },
-    { name: "ivvo", logo: "logos/ivvo.png" },
-  ];
+  // 2. FİRMALAR LİSTESİ (DİNAMİK - Backend'den gelecek)
+  const [companies, setCompanies] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sonsuz döngü pürüzsüz olsun diye firmalar listesini iki kere birleştiriyoruz
-  const loopedCompanies = [...companies, ...companies];
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await axios.get("http://localhost:3000/api/companies");
+        if (response.data.success) {
+          setCompanies(response.data.data);
+        }
+      } catch (error) {
+        console.error("Firmalar yüklenemedi:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompanies();
+  }, []);
+
+  // Sonsuz döngü efekti için listeyi iki kere birleştiriyoruz (Eğer veri varsa)
+  const loopedCompanies = companies.length > 0 ? [...companies, ...companies] : [];
+
+  // Resim URL Yardımcısı
+  const getLogoUrl = (path) => {
+    // Eğer veritabanında logo yoksa veya path null ise boş döndür
+    if (!path) return "https://via.placeholder.com/150x80?text=Firma";
+    // Eğer path zaten http ile başlıyorsa (eski veri) olduğu gibi kullan, yoksa uploads klasöründen al
+    if (path.startsWith("http")) return path;
+    return `http://localhost:3000/uploads/images/${path}`;
+  };
 
   return (
     <div className="bg-white">
@@ -46,9 +57,7 @@ const References = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10 items-center justify-items-center max-w-6xl mx-auto">
             {stakeholders.map((item, index) => (
               <div key={index} className="group flex flex-col items-center justify-center p-4 transition-all duration-300 hover:transform hover:-translate-y-1">
-                {/* Logo */}
                 <div className="h-24 md:h-28 flex items-center justify-center">
-                  {/* GÜNCELLEME: Grayscale ve opacity sınıfları kaldırıldı */}
                   <img 
                     src={item.logo} 
                     alt={item.name} 
@@ -61,7 +70,7 @@ const References = () => {
         </div>
       </section>
 
-      {/* --- 2. BÖLÜM: FİRMALARIMIZ (KAYAN SLIDER) --- */}
+      {/* --- 2. BÖLÜM: FİRMALARIMIZ (KAYAN SLIDER - DİNAMİK) --- */}
       <section className="py-12 bg-gray-50 border-t border-gray-200 overflow-hidden">
         <div className="container mx-auto px-4 mb-8 text-center">
           <h3 className="text-gray-400 font-semibold uppercase tracking-widest text-sm">
@@ -70,29 +79,35 @@ const References = () => {
         </div>
 
         {/* Kayan Alan */}
-        <div className="relative w-full overflow-hidden">
-          {/* Sol ve Sağ kenarlardaki hafif fluluk efekti (Gradient) */}
-          <div className="absolute top-0 left-0 z-10 h-full w-20 bg-gradient-to-r from-gray-50 to-transparent"></div>
-          <div className="absolute top-0 right-0 z-10 h-full w-20 bg-gradient-to-l from-gray-50 to-transparent"></div>
+        {loading ? (
+          <div className="text-center text-gray-400">Yükleniyor...</div>
+        ) : companies.length > 0 ? (
+          <div className="relative w-full overflow-hidden">
+            {/* Sol ve Sağ kenarlardaki hafif fluluk efekti */}
+            <div className="absolute top-0 left-0 z-10 h-full w-20 bg-gradient-to-r from-gray-50 to-transparent"></div>
+            <div className="absolute top-0 right-0 z-10 h-full w-20 bg-gradient-to-l from-gray-50 to-transparent"></div>
 
-          {/* Animasyonlu Şerit */}
-          <div className="animate-scroll flex gap-12 items-center">
-            {loopedCompanies.map((company, index) => (
-              <div 
-                key={index} 
-                // GÜNCELLEME: Grayscale ve opacity sınıfları kaldırıldı
-                className="flex-shrink-0 cursor-pointer transition-transform duration-300 hover:scale-110"
-              >
-                {/* Logo Resmi */}
-                <img 
-                  src={company.logo} 
-                  alt={company.name} 
-                  className="h-12 md:h-16 w-auto object-contain"
-                />
-              </div>
-            ))}
+            {/* Animasyonlu Şerit */}
+            <div className="animate-scroll flex gap-12 items-center">
+              {loopedCompanies.map((company, index) => (
+                <div 
+                  key={index} 
+                  className="flex-shrink-0 cursor-pointer transition-transform duration-300 hover:scale-110"
+                  title={company.name}
+                >
+                  <img 
+                    src={getLogoUrl(company.logo_url)} 
+                    alt={company.name} 
+                    className="h-12 md:h-16 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-500 opacity-70 hover:opacity-100"
+                    onError={(e) => { e.target.style.display = 'none'; }} // Hatalı resimleri gizle
+                  />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="text-center text-gray-400 italic">Henüz firma eklenmemiş.</div>
+        )}
       </section>
 
     </div>
