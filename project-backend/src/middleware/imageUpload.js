@@ -1,5 +1,3 @@
-// project-backend/src/middleware/imageUpload.js
-
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -7,10 +5,10 @@ const fs = require('fs');
 // Klasör yoksa oluştur
 const uploadDir = path.join(__dirname, '../../uploads/images');
 if (!fs.existsSync(uploadDir)){
-    // recursive: true sayesinde eğer 'uploads' yoksa onu da oluşturur
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// Orijinal Yapı: Dosyayı direkt diske kaydet
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDir);
@@ -31,9 +29,9 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({ 
   storage: storage,
-  // BURAYI GÜNCELLEDİK: 2MB yerine 10MB yaptık
-  limits: { fileSize: 10 * 1024 * 1024 }, 
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: fileFilter
 });
 
+// Sadece upload nesnesini dışa aktar (resizeImage yok)
 module.exports = upload;

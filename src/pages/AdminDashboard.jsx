@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-// DİKKAT: axios yerine oluşturduğumuz api'yi kullanıyoruz
 import api from "../api"; 
 import { 
   FaSignOutAlt, FaFileDownload, FaProjectDiagram, FaBriefcase, FaNewspaper, FaBuilding, FaEnvelope,
-  FaTrash, FaEye, FaTimesCircle, FaPlus, FaEdit, FaSearch, FaCog, FaBars
+  FaTrash, FaEye, FaTimesCircle, FaPlus, FaEdit, FaSearch, FaCog, FaBars, FaFileDownload as FaCvIcon
 } from "react-icons/fa";
 
 // Grafikler
@@ -12,6 +11,8 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 import { Bar, Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
+
+const ITEMS_PER_PAGE = 7; // İsteğiniz üzerine 7 olarak ayarlandı
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -26,10 +27,9 @@ const AdminDashboard = () => {
   
   // Sayfalama State'leri
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [projectsLoading, setProjectsLoading] = useState(false);
-
+  const [projectTotalPages, setProjectTotalPages] = useState(1); // Sadece projeler için backend'den gelen toplam sayfa
   const [loading, setLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -51,34 +51,36 @@ const AdminDashboard = () => {
     const token = localStorage.getItem("adminToken");
     if (!token) { navigate("/admin"); return; }
     
-    // İlk yüklemede projeleri sayfa 1 olarak çek
+    // İlk yüklemede verileri çek
     fetchProjects(1);
     fetchOtherData();
   }, [navigate]);
 
-  // Sadece Projeleri Çeken Fonksiyon (Sayfalama İçin)
+  // Tab değişince sayfayı 1'e al ve arama kutusunu temizle
+  useEffect(() => {
+    setCurrentPage(1);
+    setSearchTerm("");
+    if (activeTab === 'projects') fetchProjects(1);
+  }, [activeTab]);
+
+  // Sadece Projeleri Çeken Fonksiyon (Backend Pagination)
   const fetchProjects = async (page) => {
-    setProjectsLoading(true);
     try {
-      // api.get otomatik olarak base URL'i (localhost:5000) kullanır
-      const res = await api.get(`/applications?page=${page}&limit=10`);
+      const res = await api.get(`/applications?page=${page}&limit=${ITEMS_PER_PAGE}`);
       if (res.data.success) {
         setProjects(res.data.data);
-        // Backend pagination yapısına göre totalPages'i alıyoruz
         if (res.data.pagination) {
-            setTotalPages(res.data.pagination.totalPages);
-            setCurrentPage(page);
+            setProjectTotalPages(res.data.pagination.totalPages);
         }
       }
     } catch (error) {
       console.error("Proje yükleme hatası:", error);
     } finally {
-      setProjectsLoading(false);
       setLoading(false);
     }
   };
 
-  // Diğer Verileri Çeken Fonksiyon
+  // Diğer Verileri Çeken Fonksiyon (Frontend Pagination yapılacak)
   const fetchOtherData = async () => {
     try {
       const [careersRes, newsRes, companiesRes, messagesRes] = await Promise.all([
@@ -97,10 +99,46 @@ const AdminDashboard = () => {
     }
   };
 
-  // Grafik Verisi Hesaplama
+  // --- FİLTRELEME VE SAYFALAMA MANTIĞI ---
+
+  // 1. Önce Arama Filtresi Uygula
+  const filteredData = () => {
+    switch (activeTab) {
+        case 'projects': return projects; // Projeler zaten backend'den filtrelenmiş/sayfalanmış geliyor (search hariç)
+        case 'careers': return careers.filter(item => item.ad_soyad?.toLowerCase().includes(searchTerm.toLowerCase()));
+        case 'news': return news.filter(item => item.title?.toLowerCase().includes(searchTerm.toLowerCase()));
+        case 'companies': return companies.filter(item => item.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+        case 'messages': return messages.filter(item => item.ad_soyad?.toLowerCase().includes(searchTerm.toLowerCase()));
+        default: return [];
+    }
+  };
+
+  // 2. Sayfalama Hesapla (Frontend Pagination için)
+  const getPaginatedData = () => {
+    const data = filteredData();
+    
+    // Projeler için zaten sayfalı geldiği için direkt döndür
+    if (activeTab === 'projects') return data; 
+
+    // Diğerleri için dilimleme (slice) yap
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return data.slice(startIndex, endIndex);
+  };
+
+  // 3. Toplam Sayfa Sayısını Hesapla
+  const getTotalPages = () => {
+      if (activeTab === 'projects') return projectTotalPages;
+      return Math.ceil(filteredData().length / ITEMS_PER_PAGE) || 1;
+  };
+
+  // Grafik Verisi
   const getMonthlyProjectCounts = () => {
     const counts = new Array(12).fill(0);
     const currentYear = new Date().getFullYear();
+    // Grafik için tüm projeleri kullanmak isterdik ama backend pagination olduğu için 
+    // sadece o sayfadaki veriyi gösterir. İdealde grafik için ayrı endpoint yazılmalı.
+    // Şimdilik eldeki veriyi gösteriyoruz.
     projects.forEach(p => {
       const date = new Date(p.basvuru_tarihi);
       if (date.getFullYear() === currentYear) {
@@ -114,7 +152,7 @@ const AdminDashboard = () => {
   const monthlyData = {
     labels: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'],
     datasets: [{
-        label: 'Proje Başvurusu',
+        label: 'Görüntülenen Projeler',
         data: getMonthlyProjectCounts(),
         backgroundColor: '#005696',
         borderRadius: 6,
@@ -131,13 +169,6 @@ const AdminDashboard = () => {
       hoverOffset: 10
     }],
   };
-
-  // Filtreleme
-  const filteredProjects = projects.filter(item => item.adiniz_soyadiniz?.toLowerCase().includes(searchTerm.toLowerCase()) || item.proje_adi?.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredCareers = careers.filter(item => item.ad_soyad?.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredNews = news.filter(item => item.title?.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredCompanies = companies.filter(item => item.name?.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredMessages = messages.filter(item => item.ad_soyad?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   // CRUD İşlemleri
   const handleNewsSubmit = async (e) => {
@@ -197,11 +228,15 @@ const AdminDashboard = () => {
 
     try {
       await api.delete(endpoint);
-      if (type === 'project') setProjects(prev => prev.filter(p => p.id !== id));
+      if (type === 'project') {
+          setProjects(prev => prev.filter(p => p.id !== id));
+          fetchProjects(currentPage); // Sayfayı yenile
+      }
       else if (type === 'career') setCareers(prev => prev.filter(c => c.id !== id));
       else if (type === 'news') setNews(prev => prev.filter(n => n.id !== id));
       else if (type === 'company') setCompanies(prev => prev.filter(c => c.id !== id));
       else if (type === 'message') setMessages(prev => prev.filter(m => m.id !== id));
+      
       if (selectedApp?.id === id) closeModal();
     } catch (error) { alert("Silme başarısız."); }
   };
@@ -228,7 +263,16 @@ const AdminDashboard = () => {
   const handleLogout = () => { localStorage.removeItem("adminToken"); localStorage.removeItem("adminUser"); navigate("/admin"); };
   const openModal = (app, type) => { setSelectedApp(app); setModalType(type); };
   const closeModal = () => { setSelectedApp(null); setModalType(null); };
-  const getFileUrl = (folder, filename) => `http://localhost:5000/uploads/${folder}/${filename}`; // Port 5000 olarak güncellendi
+  const getFileUrl = (folder, filename) => `http://localhost:5000/uploads/${folder}/${filename}`; 
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= getTotalPages()) {
+        setCurrentPage(newPage);
+        if (activeTab === 'projects') {
+            fetchProjects(newPage);
+        }
+    }
+  };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-100 text-gray-500 font-medium">Panel Yükleniyor...</div>;
 
@@ -266,8 +310,12 @@ const AdminDashboard = () => {
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-gray-500 hover:text-brand-blue transition"><FaBars className="text-xl" /></button>
           <div className="flex items-center gap-4">
             <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Ara..." className="pl-10 pr-4 py-2 bg-gray-50 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50 w-64 transition-all border border-gray-200" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              {activeTab !== 'projects' && ( /* Projeler backend search olduğu için şimdilik kapattık veya ayrıca entegre edilebilir */
+                <>
+                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input type="text" placeholder="Tabloda ara..." className="pl-10 pr-4 py-2 bg-gray-50 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50 w-64 transition-all border border-gray-200" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                </>
+              )}
             </div>
             <div className="w-8 h-8 bg-brand-blue rounded-full text-white flex items-center justify-center font-bold shadow-md">A</div>
           </div>
@@ -316,7 +364,6 @@ const AdminDashboard = () => {
               {activeTab === 'messages' && 'Gelen Mesajlar'}
             </h2>
             
-            {/* EXCEL EXPORT BUTONU (Sadece Projelerde) */}
             {activeTab === 'projects' && (
                 <button 
                     onClick={() => window.open('http://localhost:5000/api/applications/export/excel', '_blank')}
@@ -330,69 +377,107 @@ const AdminDashboard = () => {
             {activeTab === 'companies' && <AddBtn onClick={() => openCompanyModal()} label="Firma Ekle" />}
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col justify-between" style={{minHeight: '400px'}}>
             <div className="overflow-x-auto">
                 <RenderTable 
                    activeTab={activeTab} 
-                   projects={filteredProjects} 
-                   careers={filteredCareers} 
-                   news={filteredNews} 
-                   companies={filteredCompanies} 
-                   messages={filteredMessages}
+                   data={getPaginatedData()} 
                    onAction={{ handleDelete, openModal, openNewsModal, openCompanyModal, getFileUrl }}
                 />
             </div>
 
-            {/* SAYFALANDIRMA (PAGINATION) */}
-            {activeTab === 'projects' && (
-              <div className="flex justify-between items-center px-6 py-4 border-t border-gray-100 bg-gray-50">
-                <span className="text-sm text-gray-500 font-medium">
-                  Sayfa {currentPage} / {totalPages}
-                </span>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => fetchProjects(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-brand-blue disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    Önceki
-                  </button>
-                  <button 
-                    onClick={() => fetchProjects(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-brand-blue disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    Sonraki
-                  </button>
-                </div>
+            {/* GENEL PAGINATION (TÜM TABLOLAR İÇİN) */}
+            <div className="flex justify-between items-center px-6 py-4 border-t border-gray-100 bg-gray-50">
+              <span className="text-sm text-gray-500 font-medium">
+                Sayfa {currentPage} / {getTotalPages()}
+              </span>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-brand-blue disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Önceki
+                </button>
+                <button 
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === getTotalPages()}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-brand-blue disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Sonraki
+                </button>
               </div>
-            )}
+            </div>
           </div>
 
         </main>
       </div>
 
-      {/* MODALLAR (Detay, Haber Ekleme, Firma Ekleme) - Kod kalabalığı olmaması için buraya özet geçiyorum, önceki modal kodlarınız aynen çalışır */}
-      {/* Detay Modalı */}
+      {/* DETAY MODALI */}
       {selectedApp && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl relative p-8">
-            <button onClick={closeModal} className="absolute top-6 right-6 text-2xl text-gray-400 hover:text-gray-600"><FaTimesCircle /></button>
-            <h2 className="text-2xl font-bold mb-6 border-b pb-4">{modalType === 'project' ? 'Proje Detayı' : modalType === 'career' ? 'Kariyer Detayı' : 'Mesaj Detayı'}</h2>
-            <div className="space-y-3">
+          <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl relative p-8 animate-fadeIn">
+            
+            <button onClick={closeModal} className="absolute top-6 right-6 text-2xl text-gray-400 hover:text-gray-600 transition-colors">
+                <FaTimesCircle />
+            </button>
+            
+            <h2 className="text-2xl font-bold mb-6 border-b pb-4 text-gray-800">
+                {modalType === 'project' ? 'Proje Detayı' : modalType === 'career' ? 'Kariyer Detayı' : 'Mesaj Detayı'}
+            </h2>
+            
+            <div className="space-y-4">
                 <DetailRow label="Ad Soyad" value={selectedApp.adiniz_soyadiniz || selectedApp.ad_soyad} />
                 <DetailRow label="E-posta" value={selectedApp.email} />
-                {modalType === 'project' && (
+
+                {/* Mesaj Detayı */}
+                {modalType === 'message' && (
                     <>
-                        <DetailRow label="Proje" value={selectedApp.proje_adi} />
-                        <div className="bg-gray-50 p-4 rounded-lg mt-2 text-sm leading-relaxed border border-gray-200">{selectedApp.proje_ozeti}</div>
-                        <div className="mt-6 flex gap-3">
-                            <button onClick={() => handleStatusChange(selectedApp.id, 'onaylandi')} className="flex-1 bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 shadow-md">Onayla</button>
-                            <button onClick={() => handleStatusChange(selectedApp.id, 'reddedildi')} className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold hover:bg-red-700 shadow-md">Reddet</button>
+                        <DetailRow label="Telefon" value={selectedApp.telefon || "-"} />
+                        <DetailRow label="Tarih" value={new Date(selectedApp.createdAt).toLocaleDateString("tr-TR") + " " + new Date(selectedApp.createdAt).toLocaleTimeString("tr-TR")} />
+                        <div className="mt-6">
+                            <h4 className="font-bold text-gray-700 mb-2 border-l-4 border-blue-500 pl-3">Mesajın Tamamı</h4>
+                            <div className="bg-blue-50/50 p-5 rounded-xl text-gray-700 text-sm leading-relaxed border border-blue-100 whitespace-pre-wrap shadow-inner">
+                                {selectedApp.mesaj}
+                            </div>
                         </div>
                     </>
                 )}
-                {modalType === 'message' && <div className="bg-gray-50 p-4 rounded-lg mt-2 text-sm">{selectedApp.mesaj}</div>}
+
+                {/* Proje Detayı */}
+                {modalType === 'project' && (
+                    <>
+                        <DetailRow label="Proje Adı" value={selectedApp.proje_adi} />
+                        <div className="bg-gray-50 p-4 rounded-lg mt-2 text-sm leading-relaxed border border-gray-200">
+                            <span className="font-bold block mb-1 text-gray-700">Özet:</span>
+                            {selectedApp.proje_ozeti}
+                        </div>
+                        <div className="mt-6 flex gap-3">
+                            <button onClick={() => handleStatusChange(selectedApp.id, 'onaylandi')} className="flex-1 bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 shadow-md transition">Onayla</button>
+                            <button onClick={() => handleStatusChange(selectedApp.id, 'reddedildi')} className="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold hover:bg-red-700 shadow-md transition">Reddet</button>
+                        </div>
+                    </>
+                )}
+
+                {/* Kariyer Detayı */}
+                {modalType === 'career' && (
+                    <>
+                        <DetailRow label="Başvuru Tipi" value={selectedApp.basvuru_tipi} />
+                        <DetailRow label="Firma" value={selectedApp.firma_adi} />
+                        {selectedApp.cv_dosya_yolu && (
+                             <div className="pt-4">
+                                <a 
+                                    href={getFileUrl('cv', selectedApp.cv_dosya_yolu)} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 bg-brand-blue text-white px-6 py-2.5 rounded-lg hover:bg-blue-800 transition shadow-sm"
+                                >
+                                    <FaCvIcon /> CV'yi İndir / Görüntüle
+                                </a>
+                             </div>
+                        )}
+                    </>
+                )}
             </div>
           </div>
         </div>
@@ -408,7 +493,14 @@ const AdminDashboard = () => {
                     <select className="w-full border p-2 rounded" value={newsForm.category} onChange={e => setNewsForm({...newsForm, category: e.target.value})}>
                         <option value="haberler">Haberler</option><option value="duyurular">Duyurular</option><option value="etkinlikler">Etkinlikler</option><option value="firmalar">Firmalardan</option>
                     </select>
-                    <input required type="text" placeholder="Tarih (Örn: 10 Mayıs 2025)" className="w-full border p-2 rounded" value={newsForm.date} onChange={e => setNewsForm({...newsForm, date: e.target.value})} />
+                    {/* Tarih Input'u Date Picker yapıldı */}
+                    <input 
+                        required 
+                        type="date" 
+                        className="w-full border p-2 rounded text-gray-700 focus:ring-2 focus:ring-brand-blue outline-none" 
+                        value={newsForm.date} 
+                        onChange={e => setNewsForm({...newsForm, date: e.target.value})} 
+                    />
                     <textarea rows="4" placeholder="İçerik" className="w-full border p-2 rounded" value={newsForm.content} onChange={e => setNewsForm({...newsForm, content: e.target.value})}></textarea>
                     <input type="file" onChange={e => setNewsFile(e.target.files[0])} className="w-full text-sm" />
                     <div className="flex justify-end gap-2 mt-4"><button type="button" onClick={() => setShowNewsModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">İptal</button><button type="submit" className="px-4 py-2 bg-brand-blue text-white rounded hover:bg-blue-800">Kaydet</button></div>
@@ -436,15 +528,16 @@ const AdminDashboard = () => {
   );
 };
 
-// Yardımcı Bileşenler
-const RenderTable = ({ activeTab, projects, careers, news, companies, messages, onAction }) => {
+// YARDIMCI BİLEŞENLER
+// data prop'u artık sayfalanmış veriyi alır
+const RenderTable = ({ activeTab, data, onAction }) => {
     const { handleDelete, openModal, openNewsModal, openCompanyModal, getFileUrl } = onAction;
     
     if (activeTab === 'projects') return (
         <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs"><tr><th className="px-6 py-4">Tarih</th><th className="px-6 py-4">Ad Soyad</th><th className="px-6 py-4">Proje</th><th className="px-6 py-4">Durum</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead>
             <tbody className="divide-y divide-gray-100">
-                {projects.map(item => (
+                {data.map(item => (
                     <tr key={item.id} className="hover:bg-gray-50 transition">
                         <td className="px-6 py-4 text-gray-500">{new Date(item.basvuru_tarihi).toLocaleDateString("tr-TR")}</td>
                         <td className="px-6 py-4 font-medium text-gray-900">{item.adiniz_soyadiniz}</td>
@@ -463,7 +556,7 @@ const RenderTable = ({ activeTab, projects, careers, news, companies, messages, 
         <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs"><tr><th className="px-6 py-4">Tarih</th><th className="px-6 py-4">Ad Soyad</th><th className="px-6 py-4">Tip</th><th className="px-6 py-4">CV</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead>
             <tbody className="divide-y divide-gray-100">
-                {careers.map(item => (
+                {data.map(item => (
                     <tr key={item.id} className="hover:bg-gray-50 transition">
                         <td className="px-6 py-4 text-gray-500">{new Date(item.createdAt).toLocaleDateString("tr-TR")}</td>
                         <td className="px-6 py-4 font-medium text-gray-900">{item.ad_soyad}</td>
@@ -480,14 +573,50 @@ const RenderTable = ({ activeTab, projects, careers, news, companies, messages, 
     );
     if (activeTab === 'news') return (
         <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs"><tr><th className="px-6 py-4">Görsel</th><th className="px-6 py-4">Başlık</th><th className="px-6 py-4">Tarih</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead>
+            <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs">
+                <tr>
+                    <th className="px-6 py-4">Görsel</th>
+                    <th className="px-6 py-4">Başlık</th>
+                    {/* YENİ SÜTUN BAŞLIĞI */}
+                    <th className="px-6 py-4">Kategori</th> 
+                    <th className="px-6 py-4">Tarih</th>
+                    <th className="px-6 py-4 text-right">İşlem</th>
+                </tr>
+            </thead>
             <tbody className="divide-y divide-gray-100">
-                {news.map(item => (
+                {data.map(item => (
                     <tr key={item.id} className="hover:bg-gray-50 transition">
-                        <td className="px-6 py-4"><img src={item.image_url ? getFileUrl('images', item.image_url) : 'https://via.placeholder.com/50'} className="w-10 h-10 object-cover rounded-lg" /></td>
+                        {/* Görsel */}
+                        <td className="px-6 py-4">
+                            <img 
+                                src={item.image_url ? getFileUrl('images', item.image_url) : 'https://via.placeholder.com/50'} 
+                                className="w-12 h-12 object-cover rounded-lg border border-gray-200" 
+                                alt="Haber görseli"
+                            />
+                        </td>
+                        
+                        {/* Başlık */}
                         <td className="px-6 py-4 font-medium text-gray-900">{item.title}</td>
-                        <td className="px-6 py-4 text-gray-500">{item.date}</td>
-                        <td className="px-6 py-4 text-right space-x-2">
+                        
+                        {/* YENİ SÜTUN: KATEGORİ (Renkli Badge) */}
+                        <td className="px-6 py-4">
+                            <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wide ${
+                                item.category === 'haberler' ? 'bg-blue-100 text-blue-700' :
+                                item.category === 'duyurular' ? 'bg-orange-100 text-orange-700' :
+                                item.category === 'etkinlikler' ? 'bg-green-100 text-green-700' :
+                                'bg-purple-100 text-purple-700' // Firmalar için
+                            }`}>
+                                {item.category}
+                            </span>
+                        </td>
+
+                        {/* Tarih */}
+                        <td className="px-6 py-4 text-gray-500 whitespace-nowrap">
+                            {new Date(item.date).toLocaleDateString('tr-TR')}
+                        </td>
+
+                        {/* İşlemler */}
+                        <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                              <TableAction onClick={() => openNewsModal(item)} icon={<FaEdit />} color="indigo" />
                              <TableAction onClick={() => handleDelete(item.id, 'news')} icon={<FaTrash />} color="red" />
                         </td>
@@ -500,7 +629,7 @@ const RenderTable = ({ activeTab, projects, careers, news, companies, messages, 
          <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs"><tr><th className="px-6 py-4">Logo</th><th className="px-6 py-4">Firma</th><th className="px-6 py-4">Sektör</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead>
             <tbody className="divide-y divide-gray-100">
-                {companies.map(item => (
+                {data.map(item => (
                     <tr key={item.id} className="hover:bg-gray-50 transition">
                         <td className="px-6 py-4"><img src={item.logo_url ? getFileUrl('images', item.logo_url) : 'https://via.placeholder.com/50'} className="w-10 h-10 object-contain bg-white rounded-lg border p-1" /></td>
                         <td className="px-6 py-4 font-medium text-gray-900">{item.name}</td>
@@ -516,13 +645,13 @@ const RenderTable = ({ activeTab, projects, careers, news, companies, messages, 
     );
     if (activeTab === 'messages') return (
         <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs"><tr><th className="px-6 py-4">Tarih</th><th className="px-6 py-4">Ad Soyad</th><th className="px-6 py-4">Mesaj</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead>
+            <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs"><tr><th className="px-6 py-4">Tarih</th><th className="px-6 py-4">Ad Soyad</th><th className="px-6 py-4">Mesaj (Özet)</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead>
             <tbody className="divide-y divide-gray-100">
-                {messages.map(item => (
+                {data.map(item => (
                     <tr key={item.id} className="hover:bg-gray-50 transition">
                         <td className="px-6 py-4 text-gray-500">{new Date(item.createdAt).toLocaleDateString("tr-TR")}</td>
                         <td className="px-6 py-4 font-medium text-gray-900">{item.ad_soyad}</td>
-                        <td className="px-6 py-4 text-gray-600 truncate max-w-xs">{item.mesaj}</td>
+                        <td className="px-6 py-4 text-gray-600">{item.mesaj.length > 30 ? item.mesaj.substring(0, 30) + "..." : item.mesaj}</td>
                         <td className="px-6 py-4 text-right space-x-2">
                              <TableAction onClick={() => openModal(item, 'message')} icon={<FaEye />} color="blue" />
                              <TableAction onClick={() => handleDelete(item.id, 'message')} icon={<FaTrash />} color="red" />

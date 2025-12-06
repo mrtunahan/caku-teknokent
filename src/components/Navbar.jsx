@@ -19,7 +19,7 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // MENÜ YAPISI GÜNCELLENDİ (GÜNCEL Sekmesi Kaldırıldı)
+  // MENÜ YAPISI GÜNCELLENDİ ("Ortaklarımız" kaldırıldı)
   const menuItems = [
     { 
       name: 'KURUMSAL', 
@@ -27,7 +27,7 @@ const Navbar = () => {
       submenu: [
         { name: 'Hakkımızda', link: '/hakkimizda' },
         { name: 'Misyon – Vizyon- Hedeflerimiz', link: '/misyon-vizyon' },
-        { name: 'Ortaklarımız', link: '/ortaklarimiz' },
+        // { name: 'Ortaklarımız', link: '/ortaklarimiz' }, // BU SATIR SİLİNDİ
         { name: 'Yönetim', link: '/yonetim-kurulu' },
         { name: 'Paydaşlarımız', link: '/ortaklarimiz' },
         { name: 'Ofisler ve Altyapılar', link: '/ofisler' },
@@ -44,7 +44,6 @@ const Navbar = () => {
         { name: 'Yönergeler', link: '/kanun-ve-yonetmelikler#yonergeler' }
       ]
     },
-    // GÜNCEL Sekmesi Buradan Kaldırıldı
     { 
       name: 'FİRMALAR', 
       link: '#',

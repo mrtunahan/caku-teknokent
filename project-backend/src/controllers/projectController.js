@@ -25,8 +25,7 @@ class ProjectController {
         });
       }
 
-      // Veritabanına kaydet
-      const newApplication = await ProjectApplication.create(applicationData);
+   
       
 
       // Başarılı kayıt sonrası e-posta gönderme örneği (axios ile)
@@ -34,19 +33,20 @@ class ProjectController {
       
 
       // --- E-POSTA GÖNDERME KODU ---
-      await sendEmail(
+      const newApplication = await ProjectApplication.create(applicationData);
+      sendEmail(
         newApplication.email,
         "Proje Başvurunuz Alındı",
         `Sayın <b>${newApplication.adiniz_soyadiniz}</b>,<br><br>
         <b>"${newApplication.proje_adi}"</b> isimli proje başvurunuz sistemimize başarıyla kaydedilmiştir.<br>
         Başvurunuz uzmanlarımız tarafından değerlendirildikten sonra size dönüş yapılacaktır.<br><br>
         Saygılarımızla,<br>Çankırı Teknokent Yönetimi`
-      );
-      res.status(201).json({
-        success: true,
-        message: 'Başvurunuz başarıyla alındı!',
-        data: newApplication
-      });
+        ).catch(err => console.error("E-posta arka planda gönderilemedi:", err));
+            res.status(201).json({
+                success: true,
+                message: 'Başvurunuz başarıyla alındı!',
+                data: newApplication
+            });
 
     } catch (error) {
       console.error('Başvuru oluşturma hatası:', error);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../api";
 import { FaLock, FaSave, FaArrowLeft, FaUserShield } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
@@ -15,18 +15,18 @@ const AdminProfile = () => {
     }
     // ... (Backend isteği aynı) ...
     try {
-        const token = localStorage.getItem("adminToken");
-        const res = await axios.post("http://localhost:3000/api/auth/change-password", 
-          { oldPassword: passwords.oldPassword, newPassword: passwords.newPassword },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.data.success) {
-          setMessage({ text: "Şifreniz başarıyla değiştirildi!", type: "success" });
-          setPasswords({ oldPassword: "", newPassword: "", confirmPassword: "" });
-        }
-      } catch (error) {
-        setMessage({ text: error.response?.data?.message || "Hata oluştu!", type: "error" });
+      // Header'a token eklemene gerek yok, api.js bunu otomatik yapıyor!
+      // URL de kısaldı.
+      const res = await api.post("/auth/change-password", 
+        { oldPassword: passwords.oldPassword, newPassword: passwords.newPassword }
+      );
+      if (res.data.success) {
+        setMessage({ text: "Şifreniz başarıyla değiştirildi!", type: "success" });
+        setPasswords({ oldPassword: "", newPassword: "", confirmPassword: "" });
       }
+    } catch (error) {
+      setMessage({ text: error.response?.data?.message || "Hata oluştu!", type: "error" });
+    }
   };
 
   return (

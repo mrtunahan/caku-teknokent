@@ -1,30 +1,35 @@
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { FaCalendarAlt, FaArrowRight } from "react-icons/fa";
+import api from "../api"; // API bağlantısı
+import { getImageUrl } from "../utils/imageHelper"; // Resim yolu düzenleyici
 
 const News = () => {
-  // Örnek Haber Verileri
-  const newsData = [
-    {
-      id: 1,
-      title: "Teknokent'te Yapay Zeka Zirvesi Gerçekleşti",
-      date: "03 Aralık 2025",
-      image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=800&auto=format&fit=crop",
-      category: "Etkinlik"
-    },
-    {
-      id: 2,
-      title: "Kuluçka Merkezi Yeni Dönem Başvuruları Başladı",
-      date: "01 Aralık 2025",
-      image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop",
-      category: "Duyuru"
-    },
-    {
-      id: 3,
-      title: "Üniversite-Sanayi İşbirliğinde Dev Adım",
-      date: "28 Kasım 2025",
-      image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop",
-      category: "Haber"
-    },
-  ];
+  const [newsData, setNewsData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const response = await api.get("/news");
+        if (response.data.success) {
+          // Son eklenen 3 haberi al (Tarihe göre sıralı geldiğini varsayıyoruz)
+          // Sadece 'haberler' kategorisindekileri veya genel karışık son 3'ü gösterebiliriz.
+          // Burada genel son 3 kaydı alıyoruz:
+          const latestNews = response.data.data.slice(0, 3);
+          setNewsData(latestNews);
+        }
+      } catch (error) {
+        console.error("Haberler yüklenemedi:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNews();
+  }, []);
+
+  if (loading) return null; // Yüklenirken boş dönebilir veya Skeleton koyabilirsiniz.
 
   return (
     <section className="py-16 bg-white">
@@ -36,52 +41,68 @@ const News = () => {
             <span className="text-brand-light font-semibold tracking-wider uppercase text-sm">Güncel Gelişmeler</span>
             <h2 className="text-3xl font-bold text-gray-800 mt-2">Haberler ve Duyurular</h2>
           </div>
-          <a href="#" className="hidden md:flex items-center gap-2 text-brand-blue font-semibold hover:gap-3 transition-all">
+          
+          {/* Tümünü Gör Linki - Dinamik Listeye Gider */}
+          <Link to="/liste/haberler" className="hidden md:flex items-center gap-2 text-brand-blue font-semibold hover:gap-3 transition-all">
             Tümünü Gör <FaArrowRight />
-          </a>
+          </Link>
         </div>
 
         {/* Haber Kartları (Grid) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {newsData.map((item) => (
-            <div key={item.id} className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100">
-              
-              {/* Resim Alanı */}
-              <div className="relative h-56 overflow-hidden">
-                <img 
-                  src={item.image} 
-                  alt={item.title} 
-                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute top-4 left-4 bg-brand-blue text-white text-xs font-bold px-3 py-1 rounded">
-                  {item.category}
-                </div>
-              </div>
+        {newsData.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {newsData.map((item) => (
+              <div key={item.id} className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 flex flex-col h-full">
+                
+                {/* Resim Alanı */}
+                <Link to={`/haber-detay/${item.id}`} className="relative h-56 overflow-hidden block">
+                  <img 
+                    src={getImageUrl(item.image_url)} 
+                    alt={item.title} 
+                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => { e.target.src = "https://via.placeholder.com/400x300?text=Resim+Yok" }}
+                  />
+                  <div className="absolute top-4 left-4 bg-brand-blue text-white text-xs font-bold px-3 py-1 rounded uppercase shadow-md">
+                    {item.category}
+                  </div>
+                </Link>
 
-              {/* İçerik Alanı */}
-              <div className="p-6">
-                <div className="flex items-center gap-2 text-gray-500 text-sm mb-3">
-                  <FaCalendarAlt className="text-brand-light" />
-                  <span>{item.date}</span>
+                {/* İçerik Alanı */}
+                <div className="p-6 flex flex-col flex-grow">
+                  <div className="flex items-center gap-2 text-gray-500 text-sm mb-3">
+                    <FaCalendarAlt className="text-brand-light" />
+                    <span>{item.date}</span>
+                  </div>
+                  
+                  <Link to={`/haber-detay/${item.id}`} className="block mb-3">
+                    <h3 className="text-xl font-bold text-gray-800 group-hover:text-brand-blue transition-colors line-clamp-2 leading-snug">
+                      {item.title}
+                    </h3>
+                  </Link>
+                  
+                  {/* İçerik Özeti (Opsiyonel - HTML taglerini temizleyerek) */}
+                  <div className="text-gray-500 text-sm line-clamp-2 mb-4 flex-grow">
+                     {item.content ? item.content.replace(/<[^>]+>/g, '') : ''}
+                  </div>
+                  
+                  <Link to={`/haber-detay/${item.id}`} className="inline-flex items-center gap-2 text-brand-light font-medium hover:text-brand-blue transition-colors mt-auto">
+                    Devamını Oku <FaArrowRight className="text-sm" />
+                  </Link>
                 </div>
-                
-                <h3 className="text-xl font-bold text-gray-800 mb-4 group-hover:text-brand-blue transition-colors line-clamp-2">
-                  {item.title}
-                </h3>
-                
-                <a href="#" className="inline-flex items-center gap-2 text-brand-light font-medium hover:text-brand-blue transition-colors">
-                  Devamını Oku <FaArrowRight className="text-sm" />
-                </a>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-gray-400 py-10 bg-gray-50 rounded-lg">
+            Henüz haber girişi yapılmamış.
+          </div>
+        )}
 
         {/* Mobilde "Tümünü Gör" butonu */}
         <div className="mt-8 text-center md:hidden">
-            <button className="bg-brand-blue text-white px-6 py-2 rounded shadow hover:bg-brand-dark transition-colors">
+            <Link to="/liste/haberler" className="inline-block bg-brand-blue text-white px-6 py-3 rounded shadow hover:bg-brand-dark transition-colors font-medium">
                 Tüm Haberleri Gör
-            </button>
+            </Link>
         </div>
 
       </div>

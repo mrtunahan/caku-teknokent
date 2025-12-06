@@ -2,12 +2,11 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto'); // YENİ: Token üretimi için
+const sendEmail = require('../utils/emailService'); // YENİ: Mail göndermek için
 
-// Token oluşturma fonksiyonu
 const createToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '1d' // Token 1 gün geçerli olsun
-  });
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1d' });
 };
 
 class AuthController {
@@ -15,43 +14,25 @@ class AuthController {
   // Yönetici Girişi
   async login(req, res) {
     const { username, password } = req.body;
-
     try {
       const user = await User.findOne({ where: { username } });
-
-      if (!user) {
-        return res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı' });
-      }
+      if (!user) return res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı' });
 
       const isValid = await user.validPassword(password);
-
-      if (!isValid) {
-        return res.status(401).json({ success: false, message: 'Hatalı şifre' });
-      }
+      if (!isValid) return res.status(401).json({ success: false, message: 'Hatalı şifre' });
 
       const token = createToken(user.id);
-
-      res.json({
-        success: true,
-        message: 'Giriş başarılı',
-        token,
-        user: {
-          id: user.id,
-          username: user.username,
-          role: user.role
-        }
-      });
-
+      res.json({ success: true, token, user: { id: user.id, username: user.username, role: user.role } });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }
   }
 
-  // İlk Yöneticiyi Oluşturmak İçin
+  // İlk Yöneticiyi Oluşturmak (E-posta alanı eklendi)
   async register(req, res) {
-    const { username, password } = req.body;
+    const { username, password, email } = req.body; // email eklendi
     try {
-      const user = await User.create({ username, password });
+      const user = await User.create({ username, password, email });
       const token = createToken(user.id);
       res.status(201).json({ success: true, token, user });
     } catch (error) {
@@ -59,26 +40,93 @@ class AuthController {
     }
   }
 
-  // Şifre Değiştirme (Class içine metot olarak eklendi)
+  // Şifre Değiştirme (Login olmuş kullanıcı için)
   async changePassword(req, res) {
-    try {
+     try {
       const { oldPassword, newPassword } = req.body;
-      const userId = req.user.id; // Middleware'den gelen ID
-
-      const user = await User.findByPk(userId);
-      
-      // Eski şifre kontrolü
+      const user = await User.findByPk(req.user.id);
       const isMatch = await bcrypt.compare(oldPassword, user.password);
-      if (!isMatch) {
-        return res.status(400).json({ success: false, message: "Eski şifre hatalı!" });
+      if (!isMatch) return res.status(400).json({ success: false, message: "Eski şifre hatalı!" });
+      
+      user.password = newPassword; 
+      await user.save();
+      res.json({ success: true, message: "Şifreniz güncellendi." });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  // YENİ: Şifremi Unuttum (Token Gönderimi)
+  async forgotPassword(req, res) {
+    const { email } = req.body;
+    try {
+      const user = await User.findOne({ where: { email } });
+      if (!user) {
+        return res.status(404).json({ success: false, message: "Bu e-posta ile kayıtlı kullanıcı bulunamadı." });
       }
 
-      // Yeni şifreyi hashle ve kaydet
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(newPassword, salt);
+      // Token oluştur (20 byte hex)
+      const resetToken = crypto.randomBytes(20).toString('hex');
+
+      // Token'ı hashle ve DB'ye kaydet 
+      user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+      
+      // Token süresi: 10 dakika
+      user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; 
+
       await user.save();
 
-      res.json({ success: true, message: "Şifreniz başarıyla güncellendi." });
+      // Sıfırlama URL'i (Frontend'in çalıştığı port, genellikle 5173)
+      const resetUrl = `http://localhost:5173/admin/reset-password/${resetToken}`;
+
+      const message = `
+        <h3>Şifre Sıfırlama Talebi</h3>
+        <p>Hesabınız için şifre sıfırlama talebinde bulundunuz.</p>
+        <p>Lütfen aşağıdaki linke tıklayarak yeni şifrenizi belirleyin:</p>
+        <a href="${resetUrl}" clicktracking=off>${resetUrl}</a><br><br>
+        <small>Bu link 10 dakika süreyle geçerlidir.</small>
+      `;
+
+      try {
+        await sendEmail(user.email, 'Şifre Sıfırlama Talebi', message);
+        res.json({ success: true, message: 'Sıfırlama e-postası gönderildi.' });
+      } catch (err) {
+        // Hata olursa tokenları temizle
+        user.resetPasswordToken = null;
+        user.resetPasswordExpire = null;
+        await user.save();
+        return res.status(500).json({ success: false, message: 'E-posta gönderilemedi.' });
+      }
+
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  // YENİ: Şifre Sıfırlama (Yeni şifreyi kaydetme)
+  async resetPassword(req, res) {
+    try {
+      // URL'den gelen token'ı hashleyip DB'deki ile karşılaştırıyoruz
+      const resetPasswordToken = crypto.createHash('sha256').update(req.params.resetToken).digest('hex');
+
+      const user = await User.findOne({
+        where: {
+          resetPasswordToken,
+          resetPasswordExpire: { [require('sequelize').Op.gt]: Date.now() } // Süresi dolmamış olmalı
+        }
+      });
+
+      if (!user) {
+        return res.status(400).json({ success: false, message: 'Geçersiz veya süresi dolmuş token.' });
+      }
+
+      // Yeni şifreyi kaydet ve tokenları temizle
+      user.password = req.body.password;
+      user.resetPasswordToken = null;
+      user.resetPasswordExpire = null;
+      await user.save();
+
+      res.json({ success: true, message: 'Şifreniz başarıyla değiştirildi! Giriş yapabilirsiniz.' });
 
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });

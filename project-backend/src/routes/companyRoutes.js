@@ -1,18 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const companyController = require('../controllers/companyController');
-const upload = require('../middleware/imageUpload'); // Resim yükleme aracını tekrar kullanıyoruz
+// Eski import şekline dönüş:
+const upload = require('../middleware/imageUpload');
 const { protect } = require('../middleware/authMiddleware');
 
-// Public (Herkes görebilir)
+// Public
 router.get('/', companyController.getAllCompanies);
 
-// Protected (Sadece Admin)
+// Protected (resizeImage kaldırıldı)
 router.post('/', protect, upload.single('logo'), companyController.createCompany);
 router.delete('/:id', protect, companyController.deleteCompany);
-router.put('/:id', protect, upload.single('logo'), companyController.updateCompany); // YENİ
-router.delete('/:id', protect, companyController.deleteCompany);
-
-
+router.put('/:id', protect, upload.single('logo'), companyController.updateCompany);
 
 module.exports = router;

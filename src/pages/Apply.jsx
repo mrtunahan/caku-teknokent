@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { FaPaperPlane, FaInfoCircle, FaCheckCircle } from "react-icons/fa";
-import axios from "axios"; // Backend bağlantısı için
+
+import api from "../api";
 
 const Apply = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -52,23 +53,23 @@ const Apply = () => {
 
   // Formu Gönder
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const response = await axios.post('http://localhost:5000/api/applications', formData);
-      
-      if (response.data.success) {
-        setSubmitted(true);
-        window.scrollTo(0, 0);
-      }
-    } catch (error) {
-      console.error("Başvuru hatası:", error);
-      alert("Başvuru gönderilirken bir hata oluştu: " + (error.response?.data?.message || error.message));
-    } finally {
-      setLoading(false);
+  try {
+    const response = await api.post('/applications', formData); // URL kısaldı
+    
+    if (response.data.success) {
+      setSubmitted(true);
+      window.scrollTo(0, 0);
     }
-  };
+  } catch (error) {
+    console.error("Başvuru hatası:", error);
+    alert("Başvuru gönderilirken bir hata oluştu: " + (error.response?.data?.message || error.message));
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (submitted) {
     return (

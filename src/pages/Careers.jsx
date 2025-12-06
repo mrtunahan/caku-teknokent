@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios'; // Axios'u import ettik
+import api from "../api";
 import "./Career.css"; 
 
 const Careers = () => {
@@ -116,24 +116,24 @@ const Careers = () => {
     }
 
     try {
-      // 2. Backend'e POST İsteği At
-      const response = await axios.post('http://localhost:5000/api/career/apply', data, {
-        headers: {
-          'Content-Type': 'multipart/form-data' // Önemli!
-        }
-      });
-
-      if (response.data.success) {
-        alert("Başvurunuz ve CV'niz başarıyla gönderildi!");
-        handleBack(); // Ana ekrana dön
+    // URL düzeltildi
+    const response = await api.post('/career/apply', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
       }
+    });
 
-    } catch (error) {
-      console.error("Başvuru hatası:", error);
-      alert("Başvuru sırasında bir hata oluştu: " + (error.response?.data?.error || error.message));
-    } finally {
-      setLoading(false);
+    if (response.data.success) {
+      alert("Başvurunuz ve CV'niz başarıyla gönderildi!");
+      handleBack(); 
     }
+
+  } catch (error) {
+    console.error("Başvuru hatası:", error);
+    alert("Başvuru sırasında bir hata oluştu: " + (error.response?.data?.error || error.message));
+  } finally {
+    setLoading(false);
+  }
   };
 
   return (

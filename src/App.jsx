@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import NewsDetail from "./pages/NewsDetail";
+
 // Mevcut Sayfalar
 import Home from "./pages/Home";
 import Apply from "./pages/Apply";
@@ -24,7 +25,9 @@ import Careers from "./pages/Careers";
 import AdminProfile from "./pages/AdminProfile";
 import { ToastContainer } from "react-toastify"; // EKLENDİ
 import "react-toastify/dist/ReactToastify.css"; // CSS EKLENDİ
-
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import NewsList from "./pages/NewsList";
 // YENİ ADMIN SAYFALARI
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -68,6 +71,9 @@ function App() {
           <Route path="/haber-detay/:id" element={<NewsDetail />} />
           <Route path="/admin/profile" element={<AdminProfile />} />
           <Route path="/firma-haberleri" element={<CompanyNews />} />
+          <Route path="/admin/forgot-password" element={<ForgotPassword />} />
+          <Route path="/admin/reset-password/:token" element={<ResetPassword />} /> 
+          <Route path="/liste/:category" element={<NewsList />} />
 
           {/* ADMIN ROTALARI */}
           <Route path="/admin" element={<AdminLogin />} />

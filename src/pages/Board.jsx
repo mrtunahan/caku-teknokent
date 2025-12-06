@@ -22,31 +22,38 @@ const Board = () => {
     },
     {
       id: 3,
-      name: "Doç. Dr. Melike Bilgi KAMAÇ",
+      name: "Doç. Dr. Nur Çağlar ÇETİNKAYA",
       title: "Yönetim Kurulu Üyesi",
-      image: "/yon_kurulu/m_b.jpg",
-      email: "melikesahin@karatekin.edu.tr"
+      image: "/yon_kurulu/nur.jpg",
+      email: "nurcaglar@karatekin.edu.tr"
     },
     {
       id: 4,
-      name: "Doç. Dr. Fehmi SALTAN",
+      name: "Dr.Öğr.Üyesi Fatih ISSI",
       title: "Yönetim Kurulu Üyesi",
-      image: "/yon_kurulu/f_s.jpg",
-      email: "fehmisaltan@karatekin.edu.tr"
+      image: "/yon_kurulu/fat.jpg",
+      email: "fatihissi@karatekin.edu.tr"
     },
     {
       id: 5,
-      name: "Dr. Öğr. Üyesi Mehmet Ali BİBERCİ",
+      name: "Dr.Öğr.Üyesi Mücahit UĞUR",
       title: "Yönetim Kurulu Üyesi",
-      image: "/yon_kurulu/m_a.png",
-      email: "mehmetalibiberci@karatekin.edu.tr"
+      image: "/yon_kurulu/muc.jpg",
+      email: "m.ugur@karatekin.edu.tr"
     },
     {
       id: 6,
-      name: "Dr. Öğr. Üyesi Seçil Ermiş İPEK",
+      name: "Ahmet USTA",
       title: "Yönetim Kurulu Üyesi",
-      image: "/yon_kurulu/s_i.jpg",
-      email: "secilermis@karatekin.edu.tr"
+      image: "/yon_kurulu/ahm.jpeg",
+      email: ""
+    },
+    {
+      id: 7,
+      name: "İbrahim AYAZ",
+      title: "Yönetim Kurulu Üyesi",
+      image: "null",
+      email: "null"
     }
   ];
 
@@ -108,10 +115,12 @@ const Board = () => {
         )}
 
         {/* 2. SEVİYE: ÜYELER (Grid Yapısı) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 justify-items-center">
+        <div className="flex flex-wrap justify-center gap-8 max-w-[1400px] mx-auto">
+          
           {members.map((member, index) => (
              <MemberCard key={member.id} member={member} delay={index * 0.1} />
           ))}
+          
         </div>
 
       </div>

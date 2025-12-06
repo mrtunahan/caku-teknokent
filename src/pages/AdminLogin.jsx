@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import { FaLock, FaUser } from "react-icons/fa";
 
@@ -92,7 +92,11 @@ const AdminLogin = () => {
               />
             </div>
           </div>
-
+            <div className="text-right mb-4">
+            <Link to="/admin/forgot-password" className="text-sm text-brand-blue hover:underline">
+                Şifremi Unuttum?
+            </Link>
+            </div>
           <button
             type="submit"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all transform hover:-translate-y-1 shadow-lg"
