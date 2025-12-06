@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Admin panelini Google'dan gizle
+Disallow: /admin
+Disallow: /admin/*
+
+# Site haritası (İleride eklerseniz yolunu buraya yazarsınız)
+# Sitemap: https://cakuteknokent.com.tr/sitemap.xml

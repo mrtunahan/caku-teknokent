@@ -1,5 +1,8 @@
 import { useState } from "react";
-import axios from "axios";
+// axios yerine api.js'i kullanıyoruz
+import api from "../api"; 
+// YENİ: Toast bildirimini import ediyoruz
+import { toast } from "react-toastify"; 
 import PageHeader from "../components/PageHeader";
 import { FaMapMarkerAlt, FaPhone, FaEnvelope } from "react-icons/fa";
 
@@ -7,21 +10,30 @@ const Contact = () => {
   const [formData, setFormData] = useState({ ad_soyad: "", email: "", telefon: "", mesaj: "" });
   const [loading, setLoading] = useState(false);
 
+  // --- BURASI GÜNCELLENDİ ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:3000/api/contact", formData);
+      // api.post otomatik olarak base URL'i kullanır (http://localhost:3000/api)
+      const res = await api.post("/contact", formData); 
+      
       if (res.data.success) {
-        alert("Mesajınız başarıyla gönderildi!");
+        // ESKİSİ: alert("Mesajınız başarıyla gönderildi!");
+        // YENİSİ: Modern bildirim
+        toast.success("Mesajınız başarıyla gönderildi! Teşekkürler.");
         setFormData({ ad_soyad: "", email: "", telefon: "", mesaj: "" });
       }
     } catch (error) {
-      alert("Bir hata oluştu.");
+      console.error("Hata:", error);
+      // ESKİSİ: alert("Bir hata oluştu.");
+      // YENİSİ: Hata bildirimi
+      toast.error("Mesaj gönderilemedi. Lütfen tekrar deneyin.");
     } finally {
       setLoading(false);
     }
   };
+  // ---------------------------
 
   return (
     <div className="min-h-screen bg-white pb-20">
@@ -96,12 +108,13 @@ const Contact = () => {
             {/* HARİTA */}
             <div className="w-full h-64 bg-gray-200 rounded-xl overflow-hidden shadow-md">
               <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3036.0357376786675!2d33.5857!3d40.6058!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4082266666666667%3A0x123456789!2sCankiri%20Karatekin%20University!5e0!3m2!1sen!2str!4v1600000000000!5m2!1sen!2str" 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3034.658257004313!2d33.59373977651717!3d40.48288865922379!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x408307c87c959727%3A0xc55c704f5e7c852!2zw4dhbmsSxLFyxLEgS2FyYXRla2luIMOcbml2ZXJzaXRlc2kgVGVrbm9rZW50!5e0!3m2!1str!2str!4v1709668382799!5m2!1str!2str" 
                 width="100%" 
                 height="100%" 
                 style={{border:0}} 
                 allowFullScreen="" 
                 loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
               ></iframe>
             </div>
           </div>

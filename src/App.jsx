@@ -22,6 +22,8 @@ import Press from "./pages/Press";
 import CompanyNews from "./pages/CompanyNews";
 import Careers from "./pages/Careers";
 import AdminProfile from "./pages/AdminProfile";
+import { ToastContainer } from "react-toastify"; // EKLENDİ
+import "react-toastify/dist/ReactToastify.css"; // CSS EKLENDİ
 
 // YENİ ADMIN SAYFALARI
 import AdminLogin from "./pages/AdminLogin";
@@ -74,6 +76,7 @@ function App() {
       </main>
 
       {/* Admin sayfalarında Footer da gizlensin ister misiniz? Şimdilik kalsın. */}
+      <ToastContainer position="top-right" autoClose={3000} />
       {!shouldHideNavbar && <Footer />}
     </div>
   );

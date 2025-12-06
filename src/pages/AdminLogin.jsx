@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import { FaLock, FaUser } from "react-icons/fa";
 
 const AdminLogin = () => {
@@ -10,17 +10,17 @@ const AdminLogin = () => {
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    try {
-      // Backend'e giriş isteği at
-      const response = await axios.post("http://localhost:3000/api/auth/login", {
-        username,
-        password,
-      });
+  try {
+    // URL'in başındaki "http://..." kısmını siliyoruz, çünkü api.js'de tanımlı.
+    const response = await api.post("/auth/login", {
+      username,
+      password,
+    });
 
-      if (response.data.success) {
+    if (response.data.success) {
         // Token'ı tarayıcı hafızasına (localStorage) kaydet
         localStorage.setItem("adminToken", response.data.token);
         localStorage.setItem("adminUser", JSON.stringify(response.data.user));
