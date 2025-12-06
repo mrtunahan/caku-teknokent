@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+// DİKKAT: axios yerine oluşturduğumuz api'yi kullanıyoruz
+import api from "../api"; 
 import { 
   FaSignOutAlt, FaFileDownload, FaProjectDiagram, FaBriefcase, FaNewspaper, FaBuilding, FaEnvelope,
-  FaTrash, FaEye, FaCheck, FaTimes, FaTimesCircle, FaPlus, FaEdit, FaSearch, FaCog, FaBars
+  FaTrash, FaEye, FaTimesCircle, FaPlus, FaEdit, FaSearch, FaCog, FaBars
 } from "react-icons/fa";
 
 // Grafikler
@@ -15,11 +16,19 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("projects");
+  
+  // Veri State'leri
   const [projects, setProjects] = useState([]);
   const [careers, setCareers] = useState([]);
   const [news, setNews] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [messages, setMessages] = useState([]);
+  
+  // Sayfalama State'leri
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -41,39 +50,61 @@ const AdminDashboard = () => {
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     if (!token) { navigate("/admin"); return; }
-    fetchData(token);
+    
+    // İlk yüklemede projeleri sayfa 1 olarak çek
+    fetchProjects(1);
+    fetchOtherData();
   }, [navigate]);
 
-  const fetchData = async (token) => {
-    const authToken = token || localStorage.getItem("adminToken");
-    const config = { headers: { Authorization: `Bearer ${authToken}` } };
+  // Sadece Projeleri Çeken Fonksiyon (Sayfalama İçin)
+  const fetchProjects = async (page) => {
+    setProjectsLoading(true);
     try {
-      const [projectsRes, careersRes, newsRes, companiesRes, messagesRes] = await Promise.all([
-        axios.get("http://localhost:3000/api/applications?limit=100", config),
-        axios.get("http://localhost:3000/api/career/list", config),
-        axios.get("http://localhost:3000/api/news", config),
-        axios.get("http://localhost:3000/api/companies", config),
-        axios.get("http://localhost:3000/api/contact", config)
+      // api.get otomatik olarak base URL'i (localhost:5000) kullanır
+      const res = await api.get(`/applications?page=${page}&limit=10`);
+      if (res.data.success) {
+        setProjects(res.data.data);
+        // Backend pagination yapısına göre totalPages'i alıyoruz
+        if (res.data.pagination) {
+            setTotalPages(res.data.pagination.totalPages);
+            setCurrentPage(page);
+        }
+      }
+    } catch (error) {
+      console.error("Proje yükleme hatası:", error);
+    } finally {
+      setProjectsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  // Diğer Verileri Çeken Fonksiyon
+  const fetchOtherData = async () => {
+    try {
+      const [careersRes, newsRes, companiesRes, messagesRes] = await Promise.all([
+        api.get("/career/list"),
+        api.get("/news"),
+        api.get("/companies"),
+        api.get("/contact")
       ]);
-      if (projectsRes.data.success) setProjects(projectsRes.data.data);
+      
       if (careersRes.data.success) setCareers(careersRes.data.data);
       if (newsRes.data.success) setNews(newsRes.data.data);
       if (companiesRes.data.success) setCompanies(companiesRes.data.data);
       if (messagesRes.data.success) setMessages(messagesRes.data.data);
-    } catch (error) { if (error.response?.status === 401) handleLogout(); } 
-    finally { setLoading(false); }
+    } catch (error) {
+      console.error("Veri çekme hatası:", error);
+    }
   };
 
-  // --- YENİ: AYLIK PROJE VERİLERİNİ HESAPLA ---
+  // Grafik Verisi Hesaplama
   const getMonthlyProjectCounts = () => {
-    const counts = new Array(12).fill(0); // [0,0,0,0,0,0,0,0,0,0,0,0]
+    const counts = new Array(12).fill(0);
     const currentYear = new Date().getFullYear();
-
     projects.forEach(p => {
       const date = new Date(p.basvuru_tarihi);
-      // Sadece bu yılın verilerini al (Opsiyonel, isterseniz kaldırabilirsiniz)
       if (date.getFullYear() === currentYear) {
-         const month = date.getMonth(); // 0 = Ocak, 11 = Aralık
+         const month = date.getMonth();
          counts[month]++;
       }
     });
@@ -82,80 +113,35 @@ const AdminDashboard = () => {
 
   const monthlyData = {
     labels: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'],
-    datasets: [
-      {
+    datasets: [{
         label: 'Proje Başvurusu',
         data: getMonthlyProjectCounts(),
-        backgroundColor: '#005696', // ÇAKÜ Mavisi
-        borderRadius: 6, // Yuvarlak köşeler
-        barThickness: 20, // İnce ve zarif barlar
-        hoverBackgroundColor: '#003366',
-      }
-    ]
-  };
-
-  // GRAFİK AYARLARI (Modern Görünüm İçin)
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false }, // Üstteki kutucuğu gizle
-      tooltip: {
-        backgroundColor: '#1e293b',
-        padding: 12,
-        titleFont: { size: 13 },
-        bodyFont: { size: 13 },
-        cornerRadius: 8,
-        displayColors: false,
-      }
-    },
-    scales: {
-      x: {
-        grid: { display: false, drawBorder: false }, // Dikey çizgileri kaldır
-        ticks: { color: '#64748b', font: { size: 12 } }
-      },
-      y: {
-        beginAtZero: true,
-        grid: { color: '#f1f5f9', borderDash: [5, 5] }, // Yatay çizgileri kesik yap
-        ticks: { stepSize: 1, color: '#64748b' },
-        border: { display: false }
-      }
-    }
+        backgroundColor: '#005696',
+        borderRadius: 6,
+        barThickness: 20,
+    }]
   };
 
   const applicationsData = {
     labels: ['Projeler', 'İş', 'Staj'],
     datasets: [{
-      data: [
-        projects.length,
-        careers.filter(c => c.basvuru_tipi === 'is').length,
-        careers.filter(c => c.basvuru_tipi === 'staj').length,
-      ],
+      data: [projects.length, careers.filter(c => c.basvuru_tipi === 'is').length, careers.filter(c => c.basvuru_tipi === 'staj').length],
       backgroundColor: ['#3b82f6', '#8b5cf6', '#f97316'],
       borderWidth: 0,
       hoverOffset: 10
     }],
   };
 
-  const doughnutOptions = {
-    cutout: '75%', // Ortası boş modern halka
-    plugins: {
-        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, color: '#64748b' } }
-    }
-  };
+  // Filtreleme
+  const filteredProjects = projects.filter(item => item.adiniz_soyadiniz?.toLowerCase().includes(searchTerm.toLowerCase()) || item.proje_adi?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredCareers = careers.filter(item => item.ad_soyad?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredNews = news.filter(item => item.title?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredCompanies = companies.filter(item => item.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredMessages = messages.filter(item => item.ad_soyad?.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  // --- FİLTRELEME ---
-  const filteredProjects = projects.filter(item => item.adiniz_soyadiniz.toLowerCase().includes(searchTerm.toLowerCase()) || item.proje_adi.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredCareers = careers.filter(item => item.ad_soyad.toLowerCase().includes(searchTerm.toLowerCase()) || item.firma_adi.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredNews = news.filter(item => item.title.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredCompanies = companies.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredMessages = messages.filter(item => item.ad_soyad.toLowerCase().includes(searchTerm.toLowerCase()) || item.email.toLowerCase().includes(searchTerm.toLowerCase()));
-
-  // --- İŞLEMLER (Aynı Kalıyor) ---
-  // (Kodun kısalığı için buradaki handle fonksiyonlarını önceki kodunuzdan koruyun veya kopyalayın)
+  // CRUD İşlemleri
   const handleNewsSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("adminToken");
     const formData = new FormData();
     formData.append('title', newsForm.title);
     formData.append('category', newsForm.category);
@@ -163,14 +149,14 @@ const AdminDashboard = () => {
     formData.append('content', newsForm.content);
     if (newsFile) formData.append('image', newsFile);
     try {
+        const config = { headers: { 'Content-Type': 'multipart/form-data' } };
         let res;
-        const config = { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } };
         if (isEditingNews) {
-            res = await axios.put(`http://localhost:3000/api/news/${currentNewsId}`, formData, config);
+            res = await api.put(`/news/${currentNewsId}`, formData, config);
             setNews(news.map(n => n.id === currentNewsId ? res.data.data : n));
             alert("Haber güncellendi!");
         } else {
-            res = await axios.post("http://localhost:3000/api/news", formData, config);
+            res = await api.post("/news", formData, config);
             setNews([res.data.data, ...news]);
             alert("Haber eklendi!");
         }
@@ -180,20 +166,19 @@ const AdminDashboard = () => {
 
   const handleCompanySubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("adminToken");
     const formData = new FormData();
     formData.append('name', companyForm.name);
     formData.append('sector', companyForm.sector);
     if (companyLogo) formData.append('logo', companyLogo);
     try {
+        const config = { headers: { 'Content-Type': 'multipart/form-data' } };
         let res;
-        const config = { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } };
         if (isEditingCompany) {
-            res = await axios.put(`http://localhost:3000/api/companies/${currentCompanyId}`, formData, config);
+            res = await api.put(`/companies/${currentCompanyId}`, formData, config);
             setCompanies(companies.map(c => c.id === currentCompanyId ? res.data.data : c));
             alert("Firma güncellendi!");
         } else {
-            res = await axios.post("http://localhost:3000/api/companies", formData, config);
+            res = await api.post("/companies", formData, config);
             setCompanies([...companies, res.data.data]);
             alert("Firma eklendi!");
         }
@@ -203,16 +188,15 @@ const AdminDashboard = () => {
 
   const handleDelete = async (id, type) => {
     if (!window.confirm("Silmek istediğinize emin misiniz?")) return;
-    const token = localStorage.getItem("adminToken");
-    let url = '';
-    if (type === 'project') url = `http://localhost:3000/api/applications/${id}`;
-    else if (type === 'career') url = `http://localhost:3000/api/career/${id}`;
-    else if (type === 'news') url = `http://localhost:3000/api/news/${id}`;
-    else if (type === 'company') url = `http://localhost:3000/api/companies/${id}`;
-    else if (type === 'message') url = `http://localhost:3000/api/contact/${id}`;
+    let endpoint = '';
+    if (type === 'project') endpoint = `/applications/${id}`;
+    else if (type === 'career') endpoint = `/career/${id}`;
+    else if (type === 'news') endpoint = `/news/${id}`;
+    else if (type === 'company') endpoint = `/companies/${id}`;
+    else if (type === 'message') endpoint = `/contact/${id}`;
 
     try {
-      await axios.delete(url, { headers: { Authorization: `Bearer ${token}` } });
+      await api.delete(endpoint);
       if (type === 'project') setProjects(prev => prev.filter(p => p.id !== id));
       else if (type === 'career') setCareers(prev => prev.filter(c => c.id !== id));
       else if (type === 'news') setNews(prev => prev.filter(n => n.id !== id));
@@ -223,22 +207,28 @@ const AdminDashboard = () => {
   };
 
   const handleStatusChange = async (id, newStatus) => {
-    const token = localStorage.getItem("adminToken");
     try {
-      await axios.patch(`http://localhost:3000/api/applications/${id}/status`, { basvuru_durumu: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
+      await api.patch(`/applications/${id}/status`, { basvuru_durumu: newStatus });
       setProjects(prev => prev.map(p => p.id === id ? { ...p, basvuru_durumu: newStatus } : p));
       if (selectedApp && selectedApp.id === id) setSelectedApp(prev => ({ ...prev, basvuru_durumu: newStatus }));
     } catch (error) { alert("Hata!"); }
   };
 
   // Helper Funcs
-  const openNewsModal = (item = null) => { if (item) { setIsEditingNews(true); setCurrentNewsId(item.id); setNewsForm({ title: item.title, category: item.category, date: item.date, content: item.content || '' }); } else { setIsEditingNews(false); setCurrentNewsId(null); setNewsForm({ title: '', category: 'haberler', date: '', content: '' }); } setNewsFile(null); setShowNewsModal(true); };
-  const openCompanyModal = (item = null) => { if (item) { setIsEditingCompany(true); setCurrentCompanyId(item.id); setCompanyForm({ name: item.name, sector: item.sector }); } else { setIsEditingCompany(false); setCurrentCompanyId(null); setCompanyForm({ name: '', sector: '' }); } setCompanyLogo(null); setShowCompanyModal(true); };
+  const openNewsModal = (item = null) => { 
+      if (item) { setIsEditingNews(true); setCurrentNewsId(item.id); setNewsForm({ title: item.title, category: item.category, date: item.date, content: item.content || '' }); } 
+      else { setIsEditingNews(false); setCurrentNewsId(null); setNewsForm({ title: '', category: 'haberler', date: '', content: '' }); } 
+      setNewsFile(null); setShowNewsModal(true); 
+  };
+  const openCompanyModal = (item = null) => { 
+      if (item) { setIsEditingCompany(true); setCurrentCompanyId(item.id); setCompanyForm({ name: item.name, sector: item.sector }); } 
+      else { setIsEditingCompany(false); setCurrentCompanyId(null); setCompanyForm({ name: '', sector: '' }); } 
+      setCompanyLogo(null); setShowCompanyModal(true); 
+  };
   const handleLogout = () => { localStorage.removeItem("adminToken"); localStorage.removeItem("adminUser"); navigate("/admin"); };
   const openModal = (app, type) => { setSelectedApp(app); setModalType(type); };
   const closeModal = () => { setSelectedApp(null); setModalType(null); };
-  const getFileUrl = (folder, filename) => `http://localhost:3000/uploads/${folder}/${filename}`;
-  const truncateText = (text, limit = 140) => { if (!text) return ""; if (text.length <= limit) return text; return text.substring(0, limit) + "..."; };
+  const getFileUrl = (folder, filename) => `http://localhost:5000/uploads/${folder}/${filename}`; // Port 5000 olarak güncellendi
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-100 text-gray-500 font-medium">Panel Yükleniyor...</div>;
 
@@ -285,7 +275,6 @@ const AdminDashboard = () => {
 
         <main className="flex-1 overflow-y-auto p-6">
           
-          {/* İSTATİSTİK KARTLARI */}
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
             <StatCard title="Toplam Proje" count={projects.length} icon={<FaProjectDiagram />} color="blue" />
             <StatCard title="Kariyer Başvurusu" count={careers.length} icon={<FaBriefcase />} color="purple" />
@@ -294,11 +283,8 @@ const AdminDashboard = () => {
             <StatCard title="Gelen Mesaj" count={messages.length} icon={<FaEnvelope />} color="pink" />
           </div>
 
-          {/* YENİ GRAFİK ALANI (DÜZELTİLMİŞ & KOMPAKT) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            
-            {/* SOL: AYLIK PROJE GRAFİĞİ */}
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 lg:col-span-2 flex flex-col h-64"> {/* h-64 sabit yükseklik */}
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 lg:col-span-2 flex flex-col h-64">
                <div className="flex justify-between items-center mb-2 shrink-0">
                  <div>
                     <h3 className="font-bold text-gray-800 text-sm">Aylık Proje Başvuruları</h3>
@@ -306,48 +292,21 @@ const AdminDashboard = () => {
                  </div>
                  <div className="p-1.5 bg-blue-50 text-brand-blue rounded-lg text-xs"><FaProjectDiagram /></div>
                </div>
-               
-               {/* Grafik Konteyneri - flex-1 ile kalan tüm alanı kaplar */}
                <div className="flex-1 w-full relative min-h-0"> 
-                 <Bar 
-                    data={monthlyData} 
-                    options={{
-                        ...chartOptions, 
-                        maintainAspectRatio: false, // Kapsayıcıya uyması için zorunlu
-                        responsive: true
-                    }} 
-                 />
+                 <Bar data={monthlyData} options={{ maintainAspectRatio: false, responsive: true, plugins: { legend: { display: false } } }} />
                </div>
             </div>
-
-            {/* SAĞ: BAŞVURU DAĞILIMI */}
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col h-64"> {/* h-64 sabit yükseklik */}
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col h-64">
                <div className="mb-2 shrink-0">
-                   <h3 className="font-bold text-gray-800 text-sm">Proje Başvurularının Sektörel Dağılımı</h3>
+                   <h3 className="font-bold text-gray-800 text-sm">Dağılım</h3>
                    <p className="text-xs text-gray-400">Kategorilere göre oranlar</p>
                </div>
-               
-               {/* Grafik Konteyneri - flex-1 ile kalan tüm alanı kaplar */}
                <div className="flex-1 w-full relative min-h-0 flex items-center justify-center">
-                 <Doughnut 
-                    data={applicationsData} 
-                    options={{
-                        cutout: '70%', 
-                        maintainAspectRatio: false,
-                        responsive: true,
-                        plugins: {
-                            legend: { 
-                                position: 'right', // Efsaneyi sağa alarak alanı verimli kullan
-                                labels: { usePointStyle: true, boxWidth: 6, font: { size: 11 }, padding: 15 } 
-                            }
-                        }
-                    }} 
-                 />
+                 <Doughnut data={applicationsData} options={{ cutout: '70%', maintainAspectRatio: false, responsive: true, plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 6, font: { size: 11 } } } } }} />
                </div>
             </div>
           </div>
 
-          {/* BAŞLIK VE BUTONLAR */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800">
               {activeTab === 'projects' && 'Proje Başvuruları'}
@@ -356,18 +315,23 @@ const AdminDashboard = () => {
               {activeTab === 'companies' && 'Firma Yönetimi'}
               {activeTab === 'messages' && 'Gelen Mesajlar'}
             </h2>
+            
+            {/* EXCEL EXPORT BUTONU (Sadece Projelerde) */}
+            {activeTab === 'projects' && (
+                <button 
+                    onClick={() => window.open('http://localhost:5000/api/applications/export/excel', '_blank')}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 transition shadow-sm font-medium text-sm"
+                >
+                    <FaFileDownload /> Excel İndir
+                </button>
+            )}
+
             {activeTab === 'news' && <AddBtn onClick={() => openNewsModal()} label="Haber Ekle" />}
             {activeTab === 'companies' && <AddBtn onClick={() => openCompanyModal()} label="Firma Ekle" />}
           </div>
 
-          {/* --- TABLOLAR --- */}
-          {/* (Tablo kodları aynı kalıyor, yer kaplamaması için özet geçiyorum. Lütfen önceki kodunuzdaki tablo kısımlarını buraya yapıştırın veya koruyun) */}
-          
-          {/* Sadece PROJE tablosunu örnek olarak koyuyorum, diğerlerini de altına eklemelisiniz */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
-                {/* ... TABLO İÇERİĞİ BURAYA GELECEK (Switch case veya koşullu render ile) ... */}
-                {/* Burada activeTab kontrolü ile ilgili tabloyu render etmelisiniz */}
                 <RenderTable 
                    activeTab={activeTab} 
                    projects={filteredProjects} 
@@ -378,16 +342,38 @@ const AdminDashboard = () => {
                    onAction={{ handleDelete, openModal, openNewsModal, openCompanyModal, getFileUrl }}
                 />
             </div>
+
+            {/* SAYFALANDIRMA (PAGINATION) */}
+            {activeTab === 'projects' && (
+              <div className="flex justify-between items-center px-6 py-4 border-t border-gray-100 bg-gray-50">
+                <span className="text-sm text-gray-500 font-medium">
+                  Sayfa {currentPage} / {totalPages}
+                </span>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => fetchProjects(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-brand-blue disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Önceki
+                  </button>
+                  <button 
+                    onClick={() => fetchProjects(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-brand-blue disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Sonraki
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
         </main>
       </div>
 
-      {/* ... MODALLAR ... (Aynı kalıyor) */}
-      {/* Modal kodlarını buraya ekleyin */}
-      
-      {/* (Modal kodlarını önceki koddan buraya kopyalayın) */}
-       {/* Detay Modalı */}
+      {/* MODALLAR (Detay, Haber Ekleme, Firma Ekleme) - Kod kalabalığı olmaması için buraya özet geçiyorum, önceki modal kodlarınız aynen çalışır */}
+      {/* Detay Modalı */}
       {selectedApp && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl relative p-8">
@@ -406,19 +392,51 @@ const AdminDashboard = () => {
                         </div>
                     </>
                 )}
-                {/* ... Diğer modal tipleri ... */}
+                {modalType === 'message' && <div className="bg-gray-50 p-4 rounded-lg mt-2 text-sm">{selectedApp.mesaj}</div>}
             </div>
           </div>
         </div>
       )}
-      
-      {/* Haber ve Firma Modalları da buraya... */}
+
+      {/* Haber Ekleme Modalı */}
+      {showNewsModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-lg w-full max-w-lg p-6">
+                <h3 className="text-xl font-bold mb-4">{isEditingNews ? 'Haberi Düzenle' : 'Yeni Haber Ekle'}</h3>
+                <form onSubmit={handleNewsSubmit} className="space-y-4">
+                    <input required type="text" placeholder="Başlık" className="w-full border p-2 rounded" value={newsForm.title} onChange={e => setNewsForm({...newsForm, title: e.target.value})} />
+                    <select className="w-full border p-2 rounded" value={newsForm.category} onChange={e => setNewsForm({...newsForm, category: e.target.value})}>
+                        <option value="haberler">Haberler</option><option value="duyurular">Duyurular</option><option value="etkinlikler">Etkinlikler</option><option value="firmalar">Firmalardan</option>
+                    </select>
+                    <input required type="text" placeholder="Tarih (Örn: 10 Mayıs 2025)" className="w-full border p-2 rounded" value={newsForm.date} onChange={e => setNewsForm({...newsForm, date: e.target.value})} />
+                    <textarea rows="4" placeholder="İçerik" className="w-full border p-2 rounded" value={newsForm.content} onChange={e => setNewsForm({...newsForm, content: e.target.value})}></textarea>
+                    <input type="file" onChange={e => setNewsFile(e.target.files[0])} className="w-full text-sm" />
+                    <div className="flex justify-end gap-2 mt-4"><button type="button" onClick={() => setShowNewsModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">İptal</button><button type="submit" className="px-4 py-2 bg-brand-blue text-white rounded hover:bg-blue-800">Kaydet</button></div>
+                </form>
+            </div>
+        </div>
+      )}
+
+      {/* Firma Ekleme Modalı */}
+      {showCompanyModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-lg w-full max-w-lg p-6">
+                <h3 className="text-xl font-bold mb-4">{isEditingCompany ? 'Firmayı Düzenle' : 'Yeni Firma Ekle'}</h3>
+                <form onSubmit={handleCompanySubmit} className="space-y-4">
+                    <input required type="text" placeholder="Firma Adı" className="w-full border p-2 rounded" value={companyForm.name} onChange={e => setCompanyForm({...companyForm, name: e.target.value})} />
+                    <input required type="text" placeholder="Sektör" className="w-full border p-2 rounded" value={companyForm.sector} onChange={e => setCompanyForm({...companyForm, sector: e.target.value})} />
+                    <div className="space-y-1"><label className="text-sm font-semibold">Logo Yükle</label><input type="file" onChange={e => setCompanyLogo(e.target.files[0])} className="w-full text-sm" /></div>
+                    <div className="flex justify-end gap-2 mt-4"><button type="button" onClick={() => setShowCompanyModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">İptal</button><button type="submit" className="px-4 py-2 bg-brand-blue text-white rounded hover:bg-blue-800">Kaydet</button></div>
+                </form>
+            </div>
+        </div>
+      )}
 
     </div>
   );
 };
 
-// Tabloyu render eden yardımcı bileşen (Kod temizliği için)
+// Yardımcı Bileşenler
 const RenderTable = ({ activeTab, projects, careers, news, companies, messages, onAction }) => {
     const { handleDelete, openModal, openNewsModal, openCompanyModal, getFileUrl } = onAction;
     
@@ -441,9 +459,6 @@ const RenderTable = ({ activeTab, projects, careers, news, companies, messages, 
             </tbody>
         </table>
     );
-    
-    // Diğer tabloları da benzer mantıkla buraya ekleyebilirsiniz (Kariyer, Haber, Firma, Mesaj)
-    // Örnek Kariyer:
     if (activeTab === 'careers') return (
         <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs"><tr><th className="px-6 py-4">Tarih</th><th className="px-6 py-4">Ad Soyad</th><th className="px-6 py-4">Tip</th><th className="px-6 py-4">CV</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead>
@@ -463,9 +478,6 @@ const RenderTable = ({ activeTab, projects, careers, news, companies, messages, 
             </tbody>
         </table>
     );
-    
-    // Diğerleri (Haber, Firma, Mesaj) için de aynı yapı...
-    // Haber
     if (activeTab === 'news') return (
         <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs"><tr><th className="px-6 py-4">Görsel</th><th className="px-6 py-4">Başlık</th><th className="px-6 py-4">Tarih</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead>
@@ -484,8 +496,6 @@ const RenderTable = ({ activeTab, projects, careers, news, companies, messages, 
             </tbody>
         </table>
     );
-
-    // Firma
     if (activeTab === 'companies') return (
          <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs"><tr><th className="px-6 py-4">Logo</th><th className="px-6 py-4">Firma</th><th className="px-6 py-4">Sektör</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead>
@@ -504,8 +514,6 @@ const RenderTable = ({ activeTab, projects, careers, news, companies, messages, 
             </tbody>
         </table>
     );
-
-    // Mesaj
     if (activeTab === 'messages') return (
         <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs"><tr><th className="px-6 py-4">Tarih</th><th className="px-6 py-4">Ad Soyad</th><th className="px-6 py-4">Mesaj</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead>
@@ -524,19 +532,10 @@ const RenderTable = ({ activeTab, projects, careers, news, companies, messages, 
             </tbody>
         </table>
     );
-
     return null;
 };
 
-const SidebarItem = ({ active, onClick, icon, label, isOpen }) => (
-  <button 
-    onClick={onClick} 
-    className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 ${active ? 'bg-brand-blue text-white shadow-lg shadow-blue-900/50' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}
-  >
-    <span className="text-xl">{icon}</span>
-    <span className={`font-medium ${!isOpen && 'hidden'}`}>{label}</span>
-  </button>
-);
+const SidebarItem = ({ active, onClick, icon, label, isOpen }) => (<button onClick={onClick} className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 ${active ? 'bg-brand-blue text-white shadow-lg shadow-blue-900/50' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}><span className="text-xl">{icon}</span><span className={`font-medium ${!isOpen && 'hidden'}`}>{label}</span></button>);
 const StatCard = ({ title, count, icon, color }) => (<div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-start hover:shadow-md transition-shadow"><div><p className={`text-xs font-bold uppercase tracking-wider text-${color}-600 mb-1`}>{title}</p><h2 className="text-3xl font-bold text-gray-800">{count}</h2></div><div className={`p-3 rounded-xl bg-${color}-50 text-${color}-500 text-xl`}>{icon}</div></div>);
 const StatusBadge = ({ status }) => { const colors = { onaylandi: 'bg-green-100 text-green-700', reddedildi: 'bg-red-100 text-red-700', beklemede: 'bg-yellow-100 text-yellow-700' }; return <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide ${colors[status] || 'bg-gray-100'}`}>{status}</span>; };
 const AddBtn = ({ onClick, label }) => (<button onClick={onClick} className="bg-brand-blue text-white px-5 py-2.5 rounded-lg shadow-lg shadow-blue-200 hover:bg-blue-800 transition flex items-center gap-2 font-medium"><FaPlus /> {label}</button>);

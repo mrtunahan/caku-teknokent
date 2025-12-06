@@ -34,7 +34,7 @@ const AdminLogin = () => {
   };
   const createTempAdmin = async () => {
     try {
-      await axios.post("http://localhost:3000/api/auth/register", {
+      await axios.post("http://localhost:5000/api/auth/register", {
         username: "admin",
         password: "123456"
       });

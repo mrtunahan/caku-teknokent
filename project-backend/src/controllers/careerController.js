@@ -1,5 +1,8 @@
 const JobApplication = require('../models/JobApplication');
+const fs = require('fs').promises; // Asenkron fs
+const path = require('path');
 
+// Başvuru Oluştur
 exports.createApplication = async (req, res) => {
   try {
     // Dosya yüklendi mi kontrol et
@@ -20,6 +23,7 @@ exports.createApplication = async (req, res) => {
   }
 };
 
+// Başvuruları Listele
 exports.getAllApplications = async (req, res) => {
   try {
     const apps = await JobApplication.findAll({ order: [['createdAt', 'DESC']] });
@@ -28,6 +32,8 @@ exports.getAllApplications = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// Başvuru Sil
 exports.deleteApplication = async (req, res) => {
   try {
     const { id } = req.params;
@@ -35,6 +41,18 @@ exports.deleteApplication = async (req, res) => {
     
     if (!application) {
       return res.status(404).json({ success: false, message: 'Başvuru bulunamadı' });
+    }
+
+    // Varsa CV dosyasını güvenli şekilde sil (YENİ EKLENEN KISIM)
+    if (application.cv_dosya_yolu) {
+        // CV'lerin yüklendiği klasör: uploads/cv
+        const filePath = path.join(__dirname, '../../uploads/cv', application.cv_dosya_yolu);
+        try {
+            await fs.unlink(filePath);
+            console.log('CV dosyası silindi:', application.cv_dosya_yolu);
+        } catch (err) {
+            console.warn('CV dosyası silinemedi (zaten yok olabilir):', err.message);
+        }
     }
 
     await application.destroy();

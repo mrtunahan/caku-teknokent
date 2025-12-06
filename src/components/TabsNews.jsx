@@ -20,7 +20,7 @@ const TabsNews = () => {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/api/news");
+        const response = await axios.get("http://localhost:5000/api/news");
         if (response.data.success) {
           setNewsList(response.data.data);
         }
@@ -40,7 +40,7 @@ const TabsNews = () => {
   // Resim URL Yardımcısı
   const getImageUrl = (path) => {
     if (!path) return "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=600&auto=format&fit=crop"; // Varsayılan Resim
-    return `http://localhost:3000/uploads/images/${path}`;
+    return `http://localhost:5000/uploads/images/${path}`;
   };
 
   return (

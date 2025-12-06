@@ -1,5 +1,5 @@
 const Company = require('../models/Company');
-const fs = require('fs');
+const fs = require('fs').promises; // Asenkron fs
 const path = require('path');
 
 // Yeni Firma Ekle
@@ -38,11 +38,13 @@ exports.deleteCompany = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Firma bulunamadı' });
     }
 
-    // Logo dosyasını da sil
+    // Logo dosyasını güvenli şekilde sil
     if (company.logo_url) {
       const filePath = path.join(__dirname, '../../uploads/images', company.logo_url);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      try {
+        await fs.unlink(filePath);
+      } catch (err) {
+        console.warn('Logo dosyası silinemedi:', err.message);
       }
     }
 
@@ -52,6 +54,8 @@ exports.deleteCompany = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// Firma Güncelle
 exports.updateCompany = async (req, res) => {
   try {
     const { id } = req.params;
@@ -65,12 +69,14 @@ exports.updateCompany = async (req, res) => {
     if (req.file) {
       logoPath = req.file.filename;
       
-      // Eski logoyu silme (Opsiyonel)
+      // Eski logoyu güvenli şekilde sil
       if (company.logo_url) {
-        const fs = require('fs');
-        const path = require('path');
         const oldPath = path.join(__dirname, '../../uploads/images', company.logo_url);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        try {
+            await fs.unlink(oldPath);
+        } catch (err) {
+            console.warn('Eski logo silinemedi:', err.message);
+        }
       }
     }
 

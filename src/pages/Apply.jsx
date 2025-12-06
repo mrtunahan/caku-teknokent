@@ -56,7 +56,7 @@ const Apply = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/applications', formData);
+      const response = await axios.post('http://localhost:5000/api/applications', formData);
       
       if (response.data.success) {
         setSubmitted(true);

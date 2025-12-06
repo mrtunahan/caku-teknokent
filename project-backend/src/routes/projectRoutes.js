@@ -17,5 +17,6 @@ router.patch('/applications/:id/status', protect, projectController.updateApplic
 router.delete('/applications/:id', protect, projectController.deleteApplication);
 router.get('/statistics/summary', protect, projectController.getStatistics);
 router.get('/statistics/by-field', protect, projectController.getApplicationsByField);
+router.get('/applications/export/excel', protect, projectController.exportProjectsExcel);
 
 module.exports = router;

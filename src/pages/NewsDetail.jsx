@@ -3,11 +3,13 @@ import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { FaCalendarAlt, FaArrowLeft, FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa";
 import PageHeader from "../components/PageHeader";
+import Seo from "../components/Seo";
 
 const NewsDetail = () => {
   const { id } = useParams(); // URL'deki id'yi al (örn: /haber-detay/5)
   const [news, setNews] = useState(null);
   const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
     const fetchNewsDetail = async () => {
@@ -37,7 +39,12 @@ const NewsDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <PageHeader title={news.title} />
-      
+      <Seo 
+        title={news.title} // Haberin başlığı sekme başlığı olur
+        description={news.content ? news.content.substring(0, 150) + "..." : "Haber detayı"} // İçeriğin ilk 150 karakteri açıklama olur
+      />
+
+      <PageHeader title={news.title} />
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Geri Dön Butonu */}
         <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-brand-blue mb-6 transition-colors font-medium">

@@ -117,7 +117,7 @@ const Careers = () => {
 
     try {
       // 2. Backend'e POST İsteği At
-      const response = await axios.post('http://localhost:3000/api/career/apply', data, {
+      const response = await axios.post('http://localhost:5000/api/career/apply', data, {
         headers: {
           'Content-Type': 'multipart/form-data' // Önemli!
         }

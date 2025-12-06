@@ -1,7 +1,7 @@
 const sendEmail = require('../utils/emailService');
 const ProjectApplication = require('../models/ProjectApplication');
 const axios = require('axios');
-
+const ExcelJS = require('exceljs');
 class ProjectController {
   // Yeni başvuru oluştur
   async createApplication(req, res) {
@@ -57,7 +57,37 @@ class ProjectController {
       });
     }
   }
+async exportProjectsExcel(req, res) {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Projeler');
 
+    // Başlıklar
+    worksheet.columns = [
+      { header: 'ID', key: 'id', width: 10 },
+      { header: 'Ad Soyad', key: 'adiniz_soyadiniz', width: 30 },
+      { header: 'Proje Adı', key: 'proje_adi', width: 40 },
+      { header: 'Durum', key: 'basvuru_durumu', width: 15 },
+      { header: 'Tarih', key: 'basvuru_tarihi', width: 20 },
+    ];
+
+    const projects = await ProjectApplication.findAll();
+
+    // Veriyi ekle
+    projects.forEach(project => {
+      worksheet.addRow(project.toJSON());
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=projeler.xlsx');
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
   // Tüm başvuruları listele
   async getAllApplications(req, res) {
     try {

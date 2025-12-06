@@ -1,5 +1,5 @@
 const News = require('../models/News');
-const fs = require('fs');
+const fs = require('fs').promises; // Asenkron dosya işlemleri için
 const path = require('path');
 
 // Yeni Haber Ekle
@@ -38,11 +38,15 @@ exports.deleteNews = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Kayıt bulunamadı' });
     }
 
-    // Varsa resim dosyasını da klasörden sil
+    // Varsa resim dosyasını güvenli şekilde sil
     if (item.image_url) {
       const filePath = path.join(__dirname, '../../uploads/images', item.image_url);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      try {
+        await fs.unlink(filePath);
+        console.log('Dosya başarıyla silindi:', item.image_url);
+      } catch (err) {
+        // Dosya bulunamazsa veya silinemezse sunucuyu durdurma, sadece logla
+        console.warn('Dosya silinemedi (zaten yok olabilir):', err.message);
       }
     }
 
@@ -52,6 +56,8 @@ exports.deleteNews = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// Tekil Haber Getir
 exports.getNewsById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -66,6 +72,8 @@ exports.getNewsById = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// Güncelle
 exports.updateNews = async (req, res) => {
   try {
     const { id } = req.params;
@@ -80,12 +88,14 @@ exports.updateNews = async (req, res) => {
     if (req.file) {
       imagePath = req.file.filename; // Yeni resmi al
       
-      // İsterseniz eski resmi klasörden silebilirsiniz (Opsiyonel):
+      // Eski resmi güvenli şekilde sil
       if (news.image_url) {
-        const fs = require('fs');
-        const path = require('path');
         const oldPath = path.join(__dirname, '../../uploads/images', news.image_url);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        try {
+            await fs.unlink(oldPath);
+        } catch (err) {
+            console.warn('Eski resim silinemedi:', err.message);
+        }
       }
     }
 
