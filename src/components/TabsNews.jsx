@@ -218,7 +218,7 @@ const TabsNews = () => {
             <div className="flex justify-center mt-12">
                 <Link 
                     to={getViewAllLink(activeTab)} 
-                    className="flex items-center gap-2 px-8 py-3 bg-white border border-gray-200 rounded-full shadow-sm text-gray-600 font-semibold hover:bg-brand-blue hover:text-white hover:border-brand-blue transition-all duration-300 group"
+                    className="flex items-center gap-2 px-8 py-3 bg-white border border-gray-200 rounded-full shadow-sm text-gray-600 font-semibold hover:bbg-blue-600 hover:text-white hover:border-brand-blue transition-all duration-300 group"
                 >
                     <FaThLarge className="text-sm opacity-70 group-hover:opacity-100" />
                     <span>Tümünü Görüntüle</span>

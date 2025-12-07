@@ -46,7 +46,7 @@ if (process.env.NODE_ENV === 'development') {
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 200,
+  max: 1000,
   message: { success: false, message: "Çok fazla istek gönderdiniz." }
 });
 app.use('/api', limiter);

@@ -62,7 +62,7 @@ const News = () => {
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
                     onError={(e) => { e.target.src = "https://via.placeholder.com/400x300?text=Resim+Yok" }}
                   />
-                  <div className="absolute top-4 left-4 bg-brand-blue text-white text-xs font-bold px-3 py-1 rounded uppercase shadow-md">
+                  <div className="absolute top-4 left-4 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded uppercase shadow-md">
                     {item.category}
                   </div>
                 </Link>
@@ -100,7 +100,7 @@ const News = () => {
 
         {/* Mobilde "Tümünü Gör" butonu */}
         <div className="mt-8 text-center md:hidden">
-            <Link to="/liste/haberler" className="inline-block bg-brand-blue text-white px-6 py-3 rounded shadow hover:bg-brand-dark transition-colors font-medium">
+            <Link to="/liste/haberler" className="inline-block bg-blue-600 text-white px-6 py-3 rounded shadow hover:bg-brand-dark transition-colors font-medium">
                 Tüm Haberleri Gör
             </Link>
         </div>

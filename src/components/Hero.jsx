@@ -3,91 +3,84 @@ import { useRef } from "react";
 import { Link } from 'react-router-dom';
 
 const Hero = () => {
-  // Video elementine erişmek için bir referans oluşturuyoruz.
   const videoRef = useRef(null);
 
-  // Videonun zamanı her güncellendiğinde çalışacak fonksiyon.
   const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      // Eğer videonun şu anki zamanı 10 saniyeyi geçerse...
-      if (videoRef.current.currentTime >= 10) {
-        // ...videoyu en başa (0. saniyeye) sar.
-        videoRef.current.currentTime = 0;
-      }
+    if (videoRef.current && videoRef.current.currentTime >= 10) {
+      videoRef.current.currentTime = 0;
     }
   };
 
   return (
     <div className="relative w-full h-[600px] md:h-[800px] bg-gray-900 overflow-hidden">
       
-      {/* 1. Arkaplan Videosu (Yerel Dosya) */}
+      {/* 1. Arkaplan Videosu */}
       <video 
-        ref={videoRef} // Referansı buraya bağlıyoruz
+        ref={videoRef}
         autoPlay 
         loop 
-        muted // Sessiz olması için
+        muted 
         playsInline
-        onTimeUpdate={handleTimeUpdate} // Zaman kontrol fonksiyonunu ekliyoruz
-        className="absolute top-0 left-0 w-full h-full object-cover opacity-60"
+        onTimeUpdate={handleTimeUpdate}
+        className="absolute top-0 left-0 w-full h-full object-cover opacity-50"
       >
-        {/* ÖNEMLİ: Videoyu 'public' klasörünün içine attığınızı varsayıyorum.
-           Eğer 'public/videos/tanitim.mp4' yoluna koyduysanız aşağıdaki src kısmını şöyle yapın:
-           src="/videos/tanitim.mp4"
-        */}
         <source src="/videos/tanitim.mp4" type="video/mp4" />
-        Tarayıcınız video etiketini desteklemiyor.
       </video>
       
-      {/* 2. Koyu Katman (Overlay) */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80"></div>
+      {/* 2. Koyu Katman (Daha okunaklı olması için ayarlandı) */}
+      <div className="absolute inset-0 bg-gradient-to-b from-gray-900/90 via-gray-900/50 to-gray-900/90"></div>
       
-      {/* 3. İçerik Alanı (Burası aynı kalıyor) */}
-      <div className="absolute inset-0 flex items-center justify-center z-20 pt-20">
+      {/* 3. İçerik Alanı */}
+      <div className="absolute inset-0 flex items-center justify-center z-20 pt-10">
         <div className="container mx-auto px-4 text-center">
           
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
-            className="max-w-4xl mx-auto text-white space-y-6"
+            className="max-w-5xl mx-auto space-y-8"
           >
-            <h1 className="text-4xl md:text-7xl font-bold leading-tight tracking-tight drop-shadow-2xl">
-              Geleceği <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-light to-white">
-                Birlikte Tasarlıyoruz
+            {/* BAŞLIK: Standart renklerle garanti gradient */}
+            <h1 className="text-5xl md:text-7xl font-extrabold leading-tight tracking-tight drop-shadow-2xl">
+              <span className="text-white">Geleceği </span> <br className="hidden md:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-red-500">
+                Birlikte Şekillendirelim
               </span>
             </h1>
             
-            <p className="text-lg md:text-2xl text-gray-200 font-light drop-shadow-md max-w-2xl mx-auto">
+            <p className="text-lg md:text-2xl text-gray-200 font-light drop-shadow-md max-w-3xl mx-auto leading-relaxed">
               Çankırı Karatekin Üniversitesi Teknokent ile fikirlerinizi girişime, girişimlerinizi başarıya dönüştürün.
             </p>
             
-            <div className="flex flex-col md:flex-row gap-5 justify-center pt-10 items-center w-full px-4">
-            {/* Sol Buton: Kırmızı - Bizim yeni sayfaya gider */}
-            <Link to="/basvuru" className="w-full md:w-auto">
-            <button className="w-full md:w-auto min-w-[220px] bg-caku-red hover:bg-red-700 text-white px-8 py-4 rounded-full font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-red-900/50 transform hover:-translate-y-1 flex items-center justify-center">
-            Proje Ön Başvurusu
-            </button>
-            </Link>
+            {/* BUTONLAR: Standart Renkler (Red-600, Blue-600) */}
+            <div className="flex flex-col md:flex-row gap-5 justify-center pt-8 items-center w-full px-4">
+              
+              {/* 1. Buton: Kırmızı */}
+              <Link to="/basvuru" className="w-full md:w-auto">
+                <button className="w-full md:w-auto min-w-[200px] bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-full font-bold text-lg transition-all duration-300 shadow-lg shadow-red-900/40 transform hover:-translate-y-1">
+                  Proje Ön Başvurusu
+                </button>
+              </Link>
 
-            {/* 2. Buton: Hakem Başvurusu (Mavi) */}
-            <a 
-                href="https://docs.google.com/forms/d/e/1FAIpQLSdRKoIBM9XzD53x--OC8N_kDuOdD8QKfF0r1pLWxlPRRrqaEQ/viewform" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="w-full md:w-auto"
-            > 
-                <button className="w-full md:w-auto min-w-[220px] bg-brand-blue hover:bg-blue-800 text-white px-8 py-4 rounded-full font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-blue-900/50 transform hover:-translate-y-1 flex items-center justify-center">
-                Hakem Başvurusu
-                </button>
-            </a>
-  
-            {/* 3. Buton: AR-GE PORTAL (Şeffaf/Glass) */}
-            <a href="https://argeportal.cakuteknokent.com.tr/" target="_blank" rel="noopener noreferrer" className="w-full md:w-auto">
-                <button className="w-full md:w-auto min-w-[220px] bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-8 py-4 rounded-full font-bold text-lg transition-all duration-300 shadow-lg border border-white/30 hover:shadow-white/20 transform hover:-translate-y-1 flex items-center justify-center">
-                AR-GE Portal
-                </button>
-            </a>
+              {/* 2. Buton: Mavi */}
+              <a 
+                  href="https://docs.google.com/forms/d/e/1FAIpQLSdRKoIBM9XzD53x--OC8N_kDuOdD8QKfF0r1pLWxlPRRrqaEQ/viewform" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="w-full md:w-auto"
+              > 
+                  <button className="w-full md:w-auto min-w-[200px] bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full font-bold text-lg transition-all duration-300 shadow-lg shadow-blue-900/40 transform hover:-translate-y-1">
+                    Hakem Başvurusu
+                  </button>
+              </a>
+    
+              {/* 3. Buton: Gri/Koyu (Portal) */}
+              <a href="https://argeportal.cakuteknokent.com.tr/" target="_blank" rel="noopener noreferrer" className="w-full md:w-auto">
+                  <button className="w-full md:w-auto min-w-[200px] bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 px-8 py-4 rounded-full font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-gray-700/40 transform hover:-translate-y-1">
+                    AR-GE Portal
+                  </button>
+              </a>
+
             </div>
           </motion.div>
 

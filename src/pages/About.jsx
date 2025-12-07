@@ -32,7 +32,7 @@ const About = () => {
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 md:p-12 relative overflow-hidden">
           
           {/* Dekoratif Arka Plan Deseni (Opsiyonel - Modernlik katar) */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-blue/5 rounded-bl-full -mr-10 -mt-10 pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-bl-full -mr-10 -mt-10 pointer-events-none"></div>
 
           {loading ? (
             <div className="space-y-4 animate-pulse">

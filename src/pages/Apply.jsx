@@ -95,7 +95,7 @@ const Apply = () => {
           {/* BÖLÜM 1 */}
           <div>
             <div className="flex items-center gap-3 mb-6 pb-2 border-b border-gray-200">
-              <span className="bg-brand-blue text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">1</span>
+              <span className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">1</span>
               <h3 className="text-xl font-bold text-gray-800">Girişimci / Firma Bilgileri</h3>
             </div>
             
@@ -139,7 +139,7 @@ const Apply = () => {
           {/* BÖLÜM 2 */}
           <div>
             <div className="flex items-center gap-3 mb-6 pb-2 border-b border-gray-200">
-              <span className="bg-brand-blue text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">2</span>
+              <span className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">2</span>
               <h3 className="text-xl font-bold text-gray-800">Proje Genel Bilgileri</h3>
             </div>
 
@@ -175,7 +175,7 @@ const Apply = () => {
           {/* BÖLÜM 3 */}
           <div>
             <div className="flex items-center gap-3 mb-6 pb-2 border-b border-gray-200">
-              <span className="bg-brand-blue text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">3</span>
+              <span className="bbg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">3</span>
               <h3 className="text-xl font-bold text-gray-800">Proje Detayları</h3>
             </div>
 
@@ -202,7 +202,7 @@ const Apply = () => {
           {/* BÖLÜM 4 */}
           <div>
              <div className="flex items-center gap-3 mb-6 pb-2 border-b border-gray-200">
-              <span className="bg-brand-blue text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">4</span>
+              <span className="bbg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">4</span>
               <h3 className="text-xl font-bold text-gray-800">Talep ve Onay</h3>
             </div>
 

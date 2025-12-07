@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from "react-router-dom";
 import { FaBars, FaTimes, FaSearch, FaChevronDown, FaLinkedin, FaInstagram } from 'react-icons/fa';
 import GTranslate from "./GTranslate";
 
 const Navbar = () => {
+  
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
 
   const isHome = location.pathname === "/";
   const isSolid = scrolled || !isHome;
-
+  
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -18,7 +19,9 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
+  if (location.pathname === '/admin/profile' || location.pathname.includes('profile')) {
+    return null;
+  }
   // MENÜ YAPISI GÜNCELLENDİ ("Ortaklarımız" kaldırıldı)
   const menuItems = [
     { 

@@ -61,7 +61,7 @@ const ForgotPassword = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand-blue hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
+            className="w-full bg-blue-600 hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
           >
             {loading ? "Gönderiliyor..." : "Sıfırlama Linki Gönder"}
           </button>

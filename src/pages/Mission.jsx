@@ -1,81 +1,113 @@
-import { useEffect, useState } from "react";
-import api from "../api"; // Sizin axios instance'ınız
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { FaBullseye, FaEye, FaListUl } from "react-icons/fa";
+import api from "../api";
+import Seo from "../components/Seo";
 
-const MisyonVizyon = () => {
-  const [misyon, setMisyon] = useState(null);
-  const [vizyon, setVizyon] = useState(null);
-  const [hedefler, setHedefler] = useState(null);
+const Mission = () => {
+  const [content, setContent] = useState({ misyon: null, vizyon: null, hedefler: null });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Üç veriyi paralel olarak çekiyoruz
         const [resMisyon, resVizyon, resHedefler] = await Promise.all([
-          api.get("/pages/misyon"),
-          api.get("/pages/vizyon"),
-          api.get("/pages/hedefler")
+          api.get("/pages/misyon").catch(() => ({ data: { data: null } })),
+          api.get("/pages/vizyon").catch(() => ({ data: { data: null } })),
+          api.get("/pages/hedefler").catch(() => ({ data: { data: null } }))
         ]);
-
-        if (resMisyon.data.success) setMisyon(resMisyon.data.data);
-        if (resVizyon.data.success) setVizyon(resVizyon.data.data);
-        if (resHedefler.data.success) setHedefler(resHedefler.data.data);
+        setContent({
+          misyon: resMisyon.data.data,
+          vizyon: resVizyon.data.data,
+          hedefler: resHedefler.data.data
+        });
       } catch (error) {
-        console.error("Veri çekilemedi", error);
+        console.error("Hata:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
-  if (loading) return <div className="py-20 text-center">Yükleniyor...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center"><div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>;
 
   return (
-    <div className="container mx-auto px-4 py-12 space-y-16">
-      
-      {/* MİSYON BÖLÜMÜ */}
-      {misyon && (
-        <section className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <h2 className="text-3xl font-bold text-brand-dark mb-4 border-l-4 border-red-600 pl-4">
-            {misyon.title || 'Misyonumuz'}
-          </h2>
-          <div 
-            className="prose max-w-none text-gray-600 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: misyon.content }} 
-          />
-        </section>
-      )}
+    <>
+      <Seo title="Misyon & Vizyon" description="Çankırı Karatekin Üniversitesi Teknokent Kurumsal Değerleri" />
 
-      {/* VİZYON BÖLÜMÜ */}
-      {vizyon && (
-        <section className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <h2 className="text-3xl font-bold text-brand-dark mb-4 border-l-4 border-blue-600 pl-4">
-            {vizyon.title || 'Vizyonumuz'}
-          </h2>
-          <div 
-            className="prose max-w-none text-gray-600 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: vizyon.content }} 
-          />
-        </section>
-      )}
+      {/* Sayfa içeriğini ortalamak ve tam ekran hissi vermek için padding ayarlandı */}
+      <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-4">
+        <div className="container mx-auto max-w-7xl">
+          
+          {/* Başlık Alanı */}
+          <div className="text-center mb-12 max-w-3xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Kurumsal Değerlerimiz</h1>
+            <p className="text-gray-500 text-lg">
+              Teknoloji ve inovasyon yolculuğumuzda bize rehberlik eden temel ilkelerimiz.
+            </p>
+          </div>
 
-      {/* HEDEFLER BÖLÜMÜ */}
-      {hedefler && (
-        <section className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <h2 className="text-3xl font-bold text-brand-dark mb-4 border-l-4 border-green-600 pl-4">
-            {hedefler.title || 'Hedeflerimiz'}
-          </h2>
-          <div 
-            className="prose max-w-none text-gray-600 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: hedefler.content }} 
-          />
-        </section>
-      )}
+          {/* TEK SATIRDA 3 KUTU (GRID YAPISI) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            {/* 1. MİSYON KUTUSU */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-red-600 hover:shadow-2xl transition-all hover:-translate-y-1 flex flex-col items-center text-center"
+            >
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mb-6 shadow-sm">
+                <FaBullseye />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Misyonumuz</h2>
+              <div 
+                className="prose text-gray-600 text-sm leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: content.misyon?.content || "Bilgi ve teknolojinin sanayiye aktarılmasını sağlayarak, bölgesel ve ulusal kalkınmaya katkıda bulunmak." }} 
+              />
+            </motion.div>
 
-    </div>
+            {/* 2. VİZYON KUTUSU */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-blue-600 hover:shadow-2xl transition-all hover:-translate-y-1 flex flex-col items-center text-center"
+            >
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl mb-6 shadow-sm">
+                <FaEye />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Vizyonumuz</h2>
+              <div 
+                className="prose text-gray-600 text-sm leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: content.vizyon?.content || "Ar-Ge ve inovasyon ekosisteminde öncü, uluslararası rekabet gücüne sahip bir teknoloji üssü olmak." }} 
+              />
+            </motion.div>
+
+            {/* 3. HEDEFLER KUTUSU */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-green-600 hover:shadow-2xl transition-all hover:-translate-y-1 flex flex-col items-center text-center"
+            >
+              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-3xl mb-6 shadow-sm">
+                <FaListUl />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Hedeflerimiz</h2>
+              <div 
+                className="prose text-gray-600 text-sm leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: content.hedefler?.content || "Üniversite-Sanayi işbirliğini güçlendirmek ve girişimcilik kültürünü yaygınlaştırmak." }} 
+              />
+            </motion.div>
+
+          </div>
+
+        </div>
+      </div>
+    </>
   );
 };
 
-export default MisyonVizyon;
+export default Mission;

@@ -35,7 +35,7 @@ const Sectors = () => {
       
       {/* Arkaplan Efektleri */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-5%] w-64 h-64 bg-brand-blue rounded-full blur-[100px]"></div>
+        <div className="absolute top-[-10%] left-[-5%] w-64 h-64 bg-blue-600 rounded-full blur-[100px]"></div>
         <div className="absolute bottom-[-10%] right-[-5%] w-64 h-64 bg-caku-red rounded-full blur-[100px]"></div>
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '30px 30px', opacity: 0.08 }}></div>
       </div>

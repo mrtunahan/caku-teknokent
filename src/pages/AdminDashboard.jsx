@@ -10,6 +10,10 @@ import {
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 
+// React 19 Uyumlu Editör Importları
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
+
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 const ITEMS_PER_PAGE = 7;
@@ -42,25 +46,24 @@ const AdminDashboard = () => {
   const [modalType, setModalType] = useState(null); 
   
   // --- FORM STATES ---
-  // Haber
   const [showNewsModal, setShowNewsModal] = useState(false);
   const [isEditingNews, setIsEditingNews] = useState(false);
   const [currentNewsId, setCurrentNewsId] = useState(null);
   const [newsForm, setNewsForm] = useState({ title: '', category: 'haberler', date: '', content: '' });
   const [newsFile, setNewsFile] = useState(null);
-  // Firma
+  
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [isEditingCompany, setIsEditingCompany] = useState(false);
   const [currentCompanyId, setCurrentCompanyId] = useState(null);
   const [companyForm, setCompanyForm] = useState({ name: '', sector: '' });
   const [companyLogo, setCompanyLogo] = useState(null);
-  // Yönetim Kurulu
+  
   const [showBoardModal, setShowBoardModal] = useState(false);
   const [isEditingBoard, setIsEditingBoard] = useState(false);
   const [currentBoardId, setCurrentBoardId] = useState(null);
   const [boardForm, setBoardForm] = useState({ name: '', title: '', email: '', is_chairman: false });
   const [boardImage, setBoardImage] = useState(null);
-  // Paydaşlar
+  
   const [showStakeholderModal, setShowStakeholderModal] = useState(false);
   const [isEditingStakeholder, setIsEditingStakeholder] = useState(false);
   const [currentStakeholderId, setCurrentStakeholderId] = useState(null);
@@ -70,48 +73,82 @@ const AdminDashboard = () => {
   // Sayfa İçerik Editörü
   const [pageContent, setPageContent] = useState({ title: '', content: '' });
   const [pageLoading, setPageLoading] = useState(false);
+  // Misyon, Vizyon, Hedefler ayrımı için yeni state
+  const [selectedSubPage, setSelectedSubPage] = useState('misyon');
+
+  // Editör Toolbar Ayarları
+  const modules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{'list': 'ordered'}, {'list': 'bullet'}],
+      ['link', 'image'],
+      [{ 'color': [] }, { 'background': [] }],
+      ['clean']
+    ],
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     if (!token) { navigate("/admin"); return; }
     fetchData();
   }, [activeTab, currentPage, navigate]);
-  // Mevcut useEffect'in altına ekleyin
+
+  // Mevcut useEffect'i bununla değiştir:
   useEffect(() => {
+    // Eğer Misyon sekmesinden başka bir yere geçtiysek alt seçimi sıfırla
+    if (activeTab !== 'page_misyon') setSelectedSubPage('misyon');
+
     setCurrentPage(1);
-    setSearchTerm(""); // Sekme değişince aramayı da temizle
-    setLoading(true); // Yükleniyor durumuna al
-  }, [activeTab]);
+    setSearchTerm("");
+    setLoading(true);
+    setPageContent({ title: '', content: '' }); 
+
+    fetchData(); // fetchData artık selectedSubPage'e göre çalışacak
+  }, [activeTab, selectedSubPage, navigate]); // BURAYA selectedSubPage EKLENDİ
 
   const fetchData = async () => {
-    if(activeTab === 'projects') fetchProjects(currentPage);
-    else if(activeTab.startsWith('page_')) fetchPageContent(activeTab.replace('page_', ''));
-    else fetchOtherData();
+    try {
+        if(activeTab === 'projects') {
+            await fetchProjects(currentPage);
+            await fetchOtherData(); 
+        }
+        else if(activeTab === 'page_misyon') {
+            // ÖZEL DURUM: Eğer Misyon sekmesiyse, seçili alt sayfayı (misyon, vizyon, hedefler) getir
+            await fetchPageContent(selectedSubPage);
+        }
+        else if(activeTab.startsWith('page_')) {
+            await fetchPageContent(activeTab.replace('page_', ''));
+        }
+        else {
+            await fetchOtherData();
+        }
+    } catch (error) {
+        console.error("Veri çekme hatası:", error);
+    } finally {
+        setLoading(false);
+    }
   };
 
   const fetchProjects = async (page) => {
-    try {
-      const res = await api.get(`/applications?page=${page}&limit=${ITEMS_PER_PAGE}`);
-      if (res.data.success) {
-        setProjects(res.data.data);
-        if (res.data.pagination) setProjectTotalPages(res.data.pagination.totalPages);
-      }
-    } catch (error) { console.error(error); } finally { setLoading(false); }
+    const res = await api.get(`/applications?page=${page}&limit=${ITEMS_PER_PAGE}`);
+    if (res.data.success) {
+      setProjects(res.data.data);
+      if (res.data.pagination) setProjectTotalPages(res.data.pagination.totalPages);
+    }
   };
 
   const fetchOtherData = async () => {
-    try {
-      const [careersRes, newsRes, companiesRes, messagesRes, boardRes, stakeRes] = await Promise.all([
-        api.get("/career/list"), api.get("/news"), api.get("/companies"), api.get("/contact"),
-        api.get("/board-members"), api.get("/stakeholders")
-      ]);
-      if (careersRes.data.success) setCareers(careersRes.data.data);
-      if (newsRes.data.success) setNews(newsRes.data.data);
-      if (companiesRes.data.success) setCompanies(companiesRes.data.data);
-      if (messagesRes.data.success) setMessages(messagesRes.data.data);
-      if (boardRes.data.success) setBoardMembers(boardRes.data.data);
-      if (stakeRes.data.success) setStakeholders(stakeRes.data.data);
-    } catch (error) { console.error(error); }
+    const [careersRes, newsRes, companiesRes, messagesRes, boardRes, stakeRes] = await Promise.all([
+      api.get("/career/list"), api.get("/news"), api.get("/companies"), api.get("/contact"),
+      api.get("/board-members"), api.get("/stakeholders")
+    ]);
+    if (careersRes.data.success) setCareers(careersRes.data.data);
+    if (newsRes.data.success) setNews(newsRes.data.data);
+    if (companiesRes.data.success) setCompanies(companiesRes.data.data);
+    if (messagesRes.data.success) setMessages(messagesRes.data.data);
+    if (boardRes.data.success) setBoardMembers(boardRes.data.data);
+    if (stakeRes.data.success) setStakeholders(stakeRes.data.data);
   };
 
   const fetchPageContent = async (slug) => {
@@ -121,12 +158,15 @@ const AdminDashboard = () => {
           if(res.data.success) {
               setPageContent({ title: res.data.data.title, content: res.data.data.content });
           }
-      } catch(err) { console.error(err); } 
-      finally { setPageLoading(false); }
+      } catch(err) { 
+          console.error(err); 
+      } 
+      finally { 
+          setPageLoading(false); 
+      }
   };
 
   // --- CRUD İŞLEMLERİ ---
-
   const handleBoardSubmit = async (e) => {
       e.preventDefault();
       const formData = new FormData();
@@ -200,8 +240,15 @@ const AdminDashboard = () => {
 
   const handlePageUpdate = async (e) => {
       e.preventDefault();
-      const slug = activeTab.replace('page_', '');
-      try { await api.put(`/pages/${slug}`, pageContent); alert("Sayfa içeriği güncellendi!"); } catch(err) { alert("Hata oluştu!"); }
+      // Eğer Misyon sekmesiyse slug = seçili olan (misyon/vizyon/hedefler), değilse normal slug
+      const slug = activeTab === 'page_misyon' ? selectedSubPage : activeTab.replace('page_', '');
+      
+      try { 
+          await api.put(`/pages/${slug}`, pageContent); 
+          alert("İçerik başarıyla güncellendi!"); 
+      } catch(err) { 
+          alert("Hata oluştu!"); 
+      }
   };
 
   const handleDelete = async (id, type) => {
@@ -291,8 +338,6 @@ const AdminDashboard = () => {
       return Math.ceil(filteredData().length / ITEMS_PER_PAGE) || 1;
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-100 text-gray-500 font-medium">Panel Yükleniyor...</div>;
-
   return (
     <div className="flex h-screen bg-[#f8fafc] font-sans text-gray-800 overflow-hidden">
       
@@ -340,80 +385,115 @@ const AdminDashboard = () => {
       {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6 z-10 border-b border-gray-200">
-           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-gray-500 hover:text-brand-blue transition"><FaBars className="text-xl" /></button>
+           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-gray-500 hover:text-blue-600 transition"><FaBars className="text-xl" /></button>
            <div className="font-bold text-gray-700">{activeTab.startsWith('page_') ? 'İçerik Yönetimi' : 'Yönetim Paneli'}</div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">
             
-            {activeTab.startsWith('page_') ? (
-                <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4 flex items-center gap-2"><FaEdit className="text-brand-blue" /> Sayfa İçeriğini Düzenle</h2>
-                    {pageLoading ? <div className="text-center py-10">Yükleniyor...</div> : (
-                        <form onSubmit={handlePageUpdate} className="space-y-6">
-                            <div><label className="block text-sm font-bold text-gray-700 mb-2">Sayfa Başlığı</label><input type="text" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-brand-blue outline-none" value={pageContent.title} onChange={(e) => setPageContent({...pageContent, title: e.target.value})}/></div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">İçerik (HTML Destekler)</label>
-                                {/* PADDING TOP ARTIRILDI: p-3 -> p-3 pt-4 */}
-                                <textarea rows="15" className="w-full border border-gray-300 rounded-lg p-3 pt-4 focus:ring-2 focus:ring-brand-blue outline-none font-mono text-sm" value={pageContent.content} onChange={(e) => setPageContent({...pageContent, content: e.target.value})} placeholder="Buraya metin veya HTML kodu girebilirsiniz..."></textarea>
-                            </div>
-                            <div className="flex justify-end"><button type="submit" className="bg-green-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-green-700 transition shadow-lg">Kaydet ve Yayınla</button></div>
-                        </form>
-                    )}
+            {/* FLASH ÇÖZÜMÜ: Yükleme ekranı sadece içeriği etkiler, menüler sabit kalır */}
+            {loading ? (
+                <div className="flex h-full items-center justify-center">
+                    <div className="text-gray-500 font-medium animate-pulse flex flex-col items-center">
+                        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                        Veriler Yükleniyor...
+                    </div>
                 </div>
             ) : (
                 <>
-                   {activeTab === 'projects' && (
-                     <>
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
-                            <StatCard title="Toplam Proje" count={projects.length} icon={<FaProjectDiagram />} color="blue" />
-                            <StatCard title="Kariyer Başvurusu" count={careers.length} icon={<FaBriefcase />} color="purple" />
-                            <StatCard title="Haber & Duyuru" count={news.length} icon={<FaNewspaper />} color="orange" />
-                            <StatCard title="Firma Sayısı" count={companies.length} icon={<FaBuilding />} color="emerald" />
-                            <StatCard title="Gelen Mesaj" count={messages.length} icon={<FaEnvelope />} color="pink" />
+                    {activeTab.startsWith('page_') ? (
+                        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4 flex items-center gap-2"><FaEdit className="text-blue-600" /> Sayfa İçeriğini Düzenle</h2>
+                            {pageLoading ? <div className="text-center py-10">Yükleniyor...</div> : (
+                                <form onSubmit={handlePageUpdate} className="space-y-6">
+                                    {activeTab === 'page_misyon' && (
+                                    <div className="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                        <label className="block text-sm font-bold text-blue-800 mb-2">Düzenlenecek Alanı Seçin</label>
+                                        <select 
+                                            value={selectedSubPage} 
+                                            onChange={(e) => setSelectedSubPage(e.target.value)}
+                                            className="w-full border border-blue-300 rounded-lg p-3 text-blue-900 font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                                        >
+                                            <option value="misyon">Misyonumuz</option>
+                                            <option value="vizyon">Vizyonumuz</option>
+                                            <option value="hedefler">Hedeflerimiz</option>
+                                        </select>
+                                    </div>
+                                      )}
+                                    <div><label className="block text-sm font-bold text-gray-700 mb-2">Sayfa Başlığı</label><input type="text" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-600 outline-none" value={pageContent.title} onChange={(e) => setPageContent({...pageContent, title: e.target.value})}/></div>
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">İçerik</label>
+                                        <div className="bg-white rounded-lg overflow-hidden border border-gray-300">
+                                        <ReactQuill 
+                                            key={activeTab} // <-- BU SATIRI MUTLAKA EKLE (Her sekmede editörü sıfırlar)
+                                            theme="snow"
+                                            value={pageContent.content}
+                                            onChange={(value) => setPageContent({...pageContent, content: value})}
+                                            modules={modules}
+                                            className="h-80"
+                                        /></div>
+                                        <div className="mb-12"></div> 
+                                    </div>
+                                    <div className="flex justify-end"><button type="submit" className="bg-green-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-green-700 transition shadow-lg">Kaydet ve Yayınla</button></div>
+                                </form>
+                                
+                            )}
                         </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 lg:col-span-2 flex flex-col h-64"><div className="flex justify-between items-center mb-2 shrink-0"><div><h3 className="font-bold text-gray-800 text-sm">Aylık Proje Başvuruları</h3></div></div><div className="flex-1 w-full relative min-h-0"><Bar data={monthlyData} options={{ maintainAspectRatio: false, responsive: true, plugins: { legend: { display: false } } }} /></div></div>
-                            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col h-64"><div className="mb-2 shrink-0"><h3 className="font-bold text-gray-800 text-sm">Dağılım</h3></div><div className="flex-1 w-full relative min-h-0 flex items-center justify-center"><Doughnut data={applicationsData} options={{ cutout: '70%', maintainAspectRatio: false, responsive: true, plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 6, font: { size: 11 } } } } }} /></div></div>
-                        </div>
-                     </>
-                   )}
+                    ) : (
+                        <>
+                        {/* İSTATİSTİKLER */}
+                        {activeTab === 'projects' && (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+                                    <StatCard title="Toplam Proje" count={projects.length} icon={<FaProjectDiagram />} color="blue" />
+                                    <StatCard title="Kariyer Başvurusu" count={careers.length} icon={<FaBriefcase />} color="purple" />
+                                    <StatCard title="Haber & Duyuru" count={news.length} icon={<FaNewspaper />} color="orange" />
+                                    <StatCard title="Firma Sayısı" count={companies.length} icon={<FaBuilding />} color="emerald" />
+                                    <StatCard title="Gelen Mesaj" count={messages.length} icon={<FaEnvelope />} color="pink" />
+                                </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                                    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 lg:col-span-2 flex flex-col h-64"><div className="flex justify-between items-center mb-2 shrink-0"><div><h3 className="font-bold text-gray-800 text-sm">Aylık Proje Başvuruları</h3></div></div><div className="flex-1 w-full relative min-h-0"><Bar data={monthlyData} options={{ maintainAspectRatio: false, responsive: true, plugins: { legend: { display: false } } }} /></div></div>
+                                    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col h-64"><div className="mb-2 shrink-0"><h3 className="font-bold text-gray-800 text-sm">Dağılım</h3></div><div className="flex-1 w-full relative min-h-0 flex items-center justify-center"><Doughnut data={applicationsData} options={{ cutout: '70%', maintainAspectRatio: false, responsive: true, plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 6, font: { size: 11 } } } } }} /></div></div>
+                                </div>
+                            </>
+                        )}
 
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">
-                    {activeTab === 'projects' && 'Proje Başvuruları'}
-                    {activeTab === 'careers' && 'Kariyer Başvuruları'}
-                    {activeTab === 'news' && 'Haber Yönetimi'}
-                    {activeTab === 'companies' && 'Firma Yönetimi'}
-                    {activeTab === 'messages' && 'Gelen Mesajlar'}
-                    {activeTab === 'board' && 'Yönetim Kurulu'}
-                    {activeTab === 'stakeholders' && 'Paydaşlar'}
-                    </h2>
-                    
-                    {activeTab === 'projects' && <button onClick={() => window.open('http://localhost:5000/api/applications/export/excel', '_blank')} className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 transition shadow-sm font-medium text-sm"><FaFileDownload /> Excel İndir</button>}
-                    {activeTab === 'news' && <AddBtn onClick={() => openNewsModal()} label="Haber Ekle" />}
-                    {activeTab === 'companies' && <AddBtn onClick={() => openCompanyModal()} label="Firma Ekle" />}
-                    {activeTab === 'board' && <AddBtn onClick={() => openBoardModal()} label="Üye Ekle" />}
-                    {activeTab === 'stakeholders' && <AddBtn onClick={() => openStakeholderModal()} label="Paydaş Ekle" />}
-                  </div>
-
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col justify-between" style={{minHeight: '400px'}}>
-                    <div className="overflow-x-auto">
-                        <RenderTable 
-                        activeTab={activeTab} 
-                        data={getPaginatedData()} 
-                        onAction={{ handleDelete, openModal, openNewsModal, openCompanyModal, openBoardModal, openStakeholderModal, getFileUrl }}
-                        />
-                    </div>
-                    {/* Pagination */}
-                    <div className="flex justify-between items-center px-6 py-4 border-t border-gray-100 bg-gray-50">
-                        <span className="text-sm text-gray-500 font-medium">Sayfa {currentPage} / {getTotalPages()}</span>
-                        <div className="flex gap-2">
-                            <button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50">Önceki</button>
-                            <button onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))} disabled={currentPage === getTotalPages()} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50">Sonraki</button>
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold text-gray-800">
+                            {activeTab === 'projects' && 'Proje Başvuruları'}
+                            {activeTab === 'careers' && 'Kariyer Başvuruları'}
+                            {activeTab === 'news' && 'Haber Yönetimi'}
+                            {activeTab === 'companies' && 'Firma Yönetimi'}
+                            {activeTab === 'messages' && 'Gelen Mesajlar'}
+                            {activeTab === 'board' && 'Yönetim Kurulu'}
+                            {activeTab === 'stakeholders' && 'Paydaşlar'}
+                            </h2>
+                            
+                            {activeTab === 'projects' && <button onClick={() => window.open('http://localhost:5000/api/applications/export/excel', '_blank')} className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 transition shadow-sm font-medium text-sm"><FaFileDownload /> Excel İndir</button>}
+                            {activeTab === 'news' && <AddBtn onClick={() => openNewsModal()} label="Haber Ekle" />}
+                            {activeTab === 'companies' && <AddBtn onClick={() => openCompanyModal()} label="Firma Ekle" />}
+                            {activeTab === 'board' && <AddBtn onClick={() => openBoardModal()} label="Üye Ekle" />}
+                            {activeTab === 'stakeholders' && <AddBtn onClick={() => openStakeholderModal()} label="Paydaş Ekle" />}
                         </div>
-                    </div>
-                  </div>
+
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col justify-between" style={{minHeight: '400px'}}>
+                            <div className="overflow-x-auto">
+                                <RenderTable 
+                                activeTab={activeTab} 
+                                data={getPaginatedData()} 
+                                onAction={{ handleDelete, openModal, openNewsModal, openCompanyModal, openBoardModal, openStakeholderModal, getFileUrl }}
+                                />
+                            </div>
+                            <div className="flex justify-between items-center px-6 py-4 border-t border-gray-100 bg-gray-50">
+                                <span className="text-sm text-gray-500 font-medium">Sayfa {currentPage} / {getTotalPages()}</span>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50">Önceki</button>
+                                    <button onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))} disabled={currentPage === getTotalPages()} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50">Sonraki</button>
+                                </div>
+                            </div>
+                        </div>
+                        </>
+                    )}
                 </>
             )}
         </main>
@@ -430,7 +510,7 @@ const AdminDashboard = () => {
                 <DetailRow label="E-posta" value={selectedApp.email} />
                 {modalType === 'message' && (<><DetailRow label="Telefon" value={selectedApp.telefon || "-"} /><DetailRow label="Tarih" value={new Date(selectedApp.createdAt).toLocaleDateString("tr-TR")} /><div className="mt-6"><h4 className="font-bold text-gray-700 mb-2 border-l-4 border-blue-500 pl-3">Mesajın Tamamı</h4><div className="bg-blue-50/50 p-5 rounded-xl text-gray-700 text-sm leading-relaxed border border-blue-100 whitespace-pre-wrap break-words shadow-inner overflow-hidden">{selectedApp.mesaj}</div></div></>)}
                 {modalType === 'project' && (<><DetailRow label="Proje Adı" value={selectedApp.proje_adi} /><div className="bg-gray-50 p-4 rounded-lg mt-2 text-sm leading-relaxed border border-gray-200"><span className="font-bold block mb-1 text-gray-700">Özet:</span>{selectedApp.proje_ozeti}</div></>)}
-                {modalType === 'career' && (<><DetailRow label="Başvuru Tipi" value={selectedApp.basvuru_tipi} /><DetailRow label="Firma" value={selectedApp.firma_adi} />{selectedApp.cv_dosya_yolu && (<div className="pt-4"><a href={getFileUrl('cv', selectedApp.cv_dosya_yolu)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-brand-blue text-white px-6 py-2.5 rounded-lg hover:bg-blue-800 transition shadow-sm"><FaCvIcon /> CV'yi İndir / Görüntüle</a></div>)}</>)}
+                {modalType === 'career' && (<><DetailRow label="Başvuru Tipi" value={selectedApp.basvuru_tipi} /><DetailRow label="Firma" value={selectedApp.firma_adi} />{selectedApp.cv_dosya_yolu && (<div className="pt-4"><a href={getFileUrl('cv', selectedApp.cv_dosya_yolu)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-800 transition shadow-sm"><FaCvIcon /> CV'yi İndir / Görüntüle</a></div>)}</>)}
             </div>
           </div>
         </div>
@@ -446,7 +526,7 @@ const AdminDashboard = () => {
                     <input type="email" placeholder="E-posta" className="w-full border p-2 rounded" value={boardForm.email} onChange={e => setBoardForm({...boardForm, email: e.target.value})} />
                     <label className="flex items-center gap-2"><input type="checkbox" checked={boardForm.is_chairman} onChange={e => setBoardForm({...boardForm, is_chairman: e.target.checked})} /> Yönetim Kurulu Başkanı mı?</label>
                     <div className="space-y-1"><label className="text-sm font-semibold">Fotoğraf Yükle</label><input type="file" onChange={e => setBoardImage(e.target.files[0])} className="w-full text-sm" /></div>
-                    <div className="flex justify-end gap-2 mt-4"><button type="button" onClick={() => setShowBoardModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">İptal</button><button type="submit" className="px-4 py-2 bg-brand-blue text-white rounded hover:bg-blue-800">Kaydet</button></div>
+                    <div className="flex justify-end gap-2 mt-4"><button type="button" onClick={() => setShowBoardModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">İptal</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-800">Kaydet</button></div>
                 </form>
             </div>
         </div>
@@ -460,7 +540,7 @@ const AdminDashboard = () => {
                     <input required type="text" placeholder="Paydaş Adı" className="w-full border p-2 rounded" value={stakeholderForm.name} onChange={e => setStakeholderForm({...stakeholderForm, name: e.target.value})} />
                     <input type="text" placeholder="Web Sitesi Linki (Opsiyonel)" className="w-full border p-2 rounded" value={stakeholderForm.link} onChange={e => setStakeholderForm({...stakeholderForm, link: e.target.value})} />
                     <div className="space-y-1"><label className="text-sm font-semibold">Logo Yükle</label><input type="file" onChange={e => setStakeholderLogo(e.target.files[0])} className="w-full text-sm" /></div>
-                    <div className="flex justify-end gap-2 mt-4"><button type="button" onClick={() => setShowStakeholderModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">İptal</button><button type="submit" className="px-4 py-2 bg-brand-blue text-white rounded hover:bg-blue-800">Kaydet</button></div>
+                    <div className="flex justify-end gap-2 mt-4"><button type="button" onClick={() => setShowStakeholderModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">İptal</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-800">Kaydet</button></div>
                 </form>
             </div>
         </div>
@@ -475,16 +555,15 @@ const AdminDashboard = () => {
                     <input required type="text" placeholder="Başlık" className="w-full border p-2 rounded" value={newsForm.title} onChange={e => setNewsForm({...newsForm, title: e.target.value})} />
                     <select className="w-full border p-2 rounded" value={newsForm.category} onChange={e => setNewsForm({...newsForm, category: e.target.value})}><option value="haberler">Haberler</option><option value="duyurular">Duyurular</option><option value="etkinlikler">Etkinlikler</option><option value="firmalar">Firmalardan</option></select>
                     <input required type="date" className="w-full border p-2 rounded" value={newsForm.date} onChange={e => setNewsForm({...newsForm, date: e.target.value})} />
-                    {/* PADDING TOP ARTIRILDI: p-2 -> p-2 pt-3 */}
                     <textarea rows="4" placeholder="İçerik" className="w-full border p-2 pt-3 rounded" value={newsForm.content} onChange={e => setNewsForm({...newsForm, content: e.target.value})}></textarea>
                     <input type="file" onChange={e => setNewsFile(e.target.files[0])} className="w-full text-sm" />
-                    <div className="flex justify-end gap-2 mt-4"><button type="button" onClick={() => setShowNewsModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">İptal</button><button type="submit" className="px-4 py-2 bg-brand-blue text-white rounded hover:bg-blue-800">Kaydet</button></div>
+                    <div className="flex justify-end gap-2 mt-4"><button type="button" onClick={() => setShowNewsModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">İptal</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-800">Kaydet</button></div>
                 </form>
             </div>
         </div>
       )}
 
-      {showCompanyModal && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-xl shadow-lg w-full max-w-lg p-6"><form onSubmit={handleCompanySubmit} className="space-y-4"><input required type="text" placeholder="Firma Adı" className="w-full border p-2 rounded" value={companyForm.name} onChange={e => setCompanyForm({...companyForm, name: e.target.value})} /><input required type="text" placeholder="Sektör" className="w-full border p-2 rounded" value={companyForm.sector} onChange={e => setCompanyForm({...companyForm, sector: e.target.value})} /><input type="file" onChange={e => setCompanyLogo(e.target.files[0])} className="w-full text-sm" /><div className="flex justify-end gap-2 mt-4"><button type="button" onClick={() => setShowCompanyModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">İptal</button><button type="submit" className="px-4 py-2 bg-brand-blue text-white rounded hover:bg-blue-800">Kaydet</button></div></form></div></div>)}
+      {showCompanyModal && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-xl shadow-lg w-full max-w-lg p-6"><form onSubmit={handleCompanySubmit} className="space-y-4"><input required type="text" placeholder="Firma Adı" className="w-full border p-2 rounded" value={companyForm.name} onChange={e => setCompanyForm({...companyForm, name: e.target.value})} /><input required type="text" placeholder="Sektör" className="w-full border p-2 rounded" value={companyForm.sector} onChange={e => setCompanyForm({...companyForm, sector: e.target.value})} /><input type="file" onChange={e => setCompanyLogo(e.target.files[0])} className="w-full text-sm" /><div className="flex justify-end gap-2 mt-4"><button type="button" onClick={() => setShowCompanyModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">İptal</button><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-800">Kaydet</button></div></form></div></div>)}
 
     </div>
   );
@@ -494,8 +573,65 @@ const RenderTable = ({ activeTab, data, onAction }) => {
     const { handleDelete, openModal, openNewsModal, openCompanyModal, openBoardModal, openStakeholderModal, getFileUrl } = onAction;
     
     if (activeTab === 'projects') return (<table className="w-full text-left text-sm"><thead className="bg-gray-50 text-gray-600 text-xs"><tr><th className="px-6 py-4">Tarih</th><th className="px-6 py-4">Ad Soyad</th><th className="px-6 py-4">Proje</th><th className="px-6 py-4">Durum</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead><tbody className="divide-y divide-gray-100">{data.map(item => (<tr key={item.id} className="hover:bg-gray-50"><td className="px-6 py-4 text-gray-500">{new Date(item.basvuru_tarihi).toLocaleDateString("tr-TR")}</td><td className="px-6 py-4 font-medium">{item.adiniz_soyadiniz}</td><td className="px-6 py-4">{item.proje_adi}</td><td className="px-6 py-4"><StatusBadge status={item.basvuru_durumu} /></td><td className="px-6 py-4 text-right space-x-2"><TableAction onClick={() => openModal(item, 'project')} icon={<FaEye />} color="blue" /><TableAction onClick={() => handleDelete(item.id, 'project')} icon={<FaTrash />} color="red" /></td></tr>))}</tbody></table>);
-    if (activeTab === 'careers') return (<table className="w-full text-left text-sm"><thead className="bg-gray-50 text-gray-600 text-xs"><tr><th className="px-6 py-4">Tarih</th><th className="px-6 py-4">Ad Soyad</th><th className="px-6 py-4">Tip</th><th className="px-6 py-4">CV</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead><tbody className="divide-y divide-gray-100">{data.map(item => (<tr key={item.id} className="hover:bg-gray-50"><td className="px-6 py-4 text-gray-500">{new Date(item.createdAt).toLocaleDateString("tr-TR")}</td><td className="px-6 py-4 font-medium">{item.ad_soyad}</td><td className="px-6 py-4">{item.basvuru_tipi}</td><td className="px-6 py-4">{item.cv_dosya_yolu ? <a href={getFileUrl('cv', item.cv_dosya_yolu)} target="_blank" className="text-blue-600 hover:underline font-bold text-xs">İNDİR</a> : '-'}</td><td className="px-6 py-4 text-right space-x-2"><TableAction onClick={() => openModal(item, 'career')} icon={<FaEye />} color="blue" /><TableAction onClick={() => handleDelete(item.id, 'career')} icon={<FaTrash />} color="red" /></td></tr>))}</tbody></table>);
-    if (activeTab === 'news') return (<table className="w-full text-left text-sm"><thead className="bg-gray-50 text-gray-600 text-xs"><tr><th className="px-6 py-4">Görsel</th><th className="px-6 py-4">Başlık</th><th className="px-6 py-4">Kategori</th><th className="px-6 py-4">Tarih</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead><tbody className="divide-y divide-gray-100">{data.map(item => (<tr key={item.id} className="hover:bg-gray-50"><td className="px-6 py-4"><img src={item.image_url ? getFileUrl('images', item.image_url) : 'https://via.placeholder.com/50'} className="w-10 h-10 object-cover rounded-lg border" /></td><td className="px-6 py-4 font-medium">{item.title}</td><td className="px-6 py-4"><span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase ${item.category === 'haberler' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>{item.category}</span></td><td className="px-6 py-4 text-gray-500">{new Date(item.date).toLocaleDateString('tr-TR')}</td><td className="px-6 py-4 text-right space-x-2"><TableAction onClick={() => openNewsModal(item)} icon={<FaEdit />} color="indigo" /><TableAction onClick={() => handleDelete(item.id, 'news')} icon={<FaTrash />} color="red" /></td></tr>))}</tbody></table>);
+    
+    // GÜNCEL: Kariyer Başvuruları Renkli Etiketli
+    if (activeTab === 'careers') return (
+      <table className="w-full text-left text-sm">
+        <thead className="bg-gray-50 text-gray-600 text-xs">
+          <tr><th className="px-6 py-4">Tarih</th><th className="px-6 py-4">Ad Soyad</th><th className="px-6 py-4">Tip</th><th className="px-6 py-4">CV</th><th className="px-6 py-4 text-right">İşlem</th></tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {data.map(item => (
+            <tr key={item.id} className="hover:bg-gray-50">
+              <td className="px-6 py-4 text-gray-500">{new Date(item.createdAt).toLocaleDateString("tr-TR")}</td>
+              <td className="px-6 py-4 font-medium">{item.ad_soyad}</td>
+              <td className="px-6 py-4">
+                <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase ${
+                  item.basvuru_tipi === 'staj' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'
+                }`}>
+                  {item.basvuru_tipi}
+                </span>
+              </td>
+              <td className="px-6 py-4">
+                {item.cv_dosya_yolu ? <a href={getFileUrl('cv', item.cv_dosya_yolu)} target="_blank" className="text-blue-600 hover:underline font-bold text-xs">İNDİR</a> : '-'}
+              </td>
+              <td className="px-6 py-4 text-right space-x-2">
+                <TableAction onClick={() => openModal(item, 'career')} icon={<FaEye />} color="blue" />
+                <TableAction onClick={() => handleDelete(item.id, 'career')} icon={<FaTrash />} color="red" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+
+    // GÜNCEL: Haberler Renkli Etiketli
+    if (activeTab === 'news') return (
+      <table className="w-full text-left text-sm">
+        <thead className="bg-gray-50 text-gray-600 text-xs">
+          <tr><th className="px-6 py-4">Görsel</th><th className="px-6 py-4">Başlık</th><th className="px-6 py-4">Kategori</th><th className="px-6 py-4">Tarih</th><th className="px-6 py-4 text-right">İşlem</th></tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {data.map(item => {
+            let badgeColor = 'bg-gray-100 text-gray-700';
+            if (item.category === 'haberler') badgeColor = 'bg-blue-100 text-blue-700';
+            else if (item.category === 'duyurular') badgeColor = 'bg-yellow-100 text-yellow-800';
+            else if (item.category === 'etkinlikler') badgeColor = 'bg-purple-100 text-purple-700';
+            else if (item.category === 'firmalar') badgeColor = 'bg-green-100 text-green-700';
+
+            return (
+              <tr key={item.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4"><img src={item.image_url ? getFileUrl('images', item.image_url) : 'https://via.placeholder.com/50'} className="w-10 h-10 object-cover rounded-lg border" /></td>
+                <td className="px-6 py-4 font-medium">{item.title}</td>
+                <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase ${badgeColor}`}>{item.category}</span></td>
+                <td className="px-6 py-4 text-gray-500">{new Date(item.date).toLocaleDateString('tr-TR')}</td>
+                <td className="px-6 py-4 text-right space-x-2"><TableAction onClick={() => openNewsModal(item)} icon={<FaEdit />} color="indigo" /><TableAction onClick={() => handleDelete(item.id, 'news')} icon={<FaTrash />} color="red" /></td></tr>
+            );
+          })}
+        </tbody>
+      </table>
+    );
+
     if (activeTab === 'companies') return (<table className="w-full text-left text-sm"><thead className="bg-gray-50 text-gray-600 text-xs"><tr><th className="px-6 py-4">Logo</th><th className="px-6 py-4">Firma</th><th className="px-6 py-4">Sektör</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead><tbody className="divide-y divide-gray-100">{data.map(item => (<tr key={item.id} className="hover:bg-gray-50"><td className="px-6 py-4"><img src={item.logo_url ? getFileUrl('images', item.logo_url) : 'https://via.placeholder.com/50'} className="w-10 h-10 object-contain bg-white rounded-lg border p-1" /></td><td className="px-6 py-4 font-medium">{item.name}</td><td className="px-6 py-4 text-gray-500">{item.sector}</td><td className="px-6 py-4 text-right space-x-2"><TableAction onClick={() => openCompanyModal(item)} icon={<FaEdit />} color="indigo" /><TableAction onClick={() => handleDelete(item.id, 'company')} icon={<FaTrash />} color="red" /></td></tr>))}</tbody></table>);
     if (activeTab === 'messages') return (<table className="w-full text-left text-sm"><thead className="bg-gray-50 text-gray-600 text-xs"><tr><th className="px-6 py-4">Tarih</th><th className="px-6 py-4">Ad Soyad</th><th className="px-6 py-4">Mesaj</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead><tbody className="divide-y divide-gray-100">{data.map(item => (<tr key={item.id} className="hover:bg-gray-50"><td className="px-6 py-4 text-gray-500">{new Date(item.createdAt).toLocaleDateString("tr-TR")}</td><td className="px-6 py-4 font-medium">{item.ad_soyad}</td><td className="px-6 py-4 truncate max-w-xs">{item.mesaj}</td><td className="px-6 py-4 text-right space-x-2"><TableAction onClick={() => openModal(item, 'message')} icon={<FaEye />} color="blue" /><TableAction onClick={() => handleDelete(item.id, 'message')} icon={<FaTrash />} color="red" /></td></tr>))}</tbody></table>);
     if (activeTab === 'board') return (<table className="w-full text-left text-sm"><thead className="bg-gray-50 text-gray-600 text-xs"><tr><th className="px-6 py-4">Fotoğraf</th><th className="px-6 py-4">Ad Soyad</th><th className="px-6 py-4">Unvan</th><th className="px-6 py-4">Başkan mı?</th><th className="px-6 py-4 text-right">İşlem</th></tr></thead><tbody className="divide-y divide-gray-100">{data.map(item => (<tr key={item.id} className="hover:bg-gray-50"><td className="px-6 py-4"><img src={item.image_url ? getFileUrl('images', item.image_url) : 'https://via.placeholder.com/50'} className="w-10 h-10 object-cover rounded-full border" /></td><td className="px-6 py-4 font-medium">{item.name}</td><td className="px-6 py-4">{item.title}</td><td className="px-6 py-4">{item.is_chairman ? <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">BAŞKAN</span> : '-'}</td><td className="px-6 py-4 text-right space-x-2"><TableAction onClick={() => openBoardModal(item)} icon={<FaEdit />} color="indigo" /><TableAction onClick={() => handleDelete(item.id, 'board')} icon={<FaTrash />} color="red" /></td></tr>))}</tbody></table>);
@@ -503,11 +639,48 @@ const RenderTable = ({ activeTab, data, onAction }) => {
     return null;
 };
 
-const SidebarItem = ({ active, onClick, icon, label, isOpen }) => (<button onClick={onClick} className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 mb-1 ${active ? 'bg-brand-blue text-white shadow-lg shadow-blue-900/50' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}><span className="text-lg">{icon}</span><span className={`font-medium ${!isOpen && 'hidden'}`}>{label}</span></button>);
-const SidebarSubItem = ({ active, onClick, icon, label }) => (<button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 text-sm ${active ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}><span className="text-xs opacity-70">{icon}</span><span>{label}</span></button>);
+// RENK DÜZELTMELERİ YAPILMIŞ ALT BİLEŞENLER
+const SidebarItem = ({ active, onClick, icon, label, isOpen }) => (
+  <button 
+    onClick={onClick} 
+    className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 mb-1 ${
+      active 
+        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' 
+        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+    }`}
+  >
+    <span className="text-lg">{icon}</span>
+    <span className={`font-medium ${!isOpen && 'hidden'}`}>{label}</span>
+  </button>
+);
+
+const SidebarSubItem = ({ active, onClick, icon, label }) => (
+  <button 
+    onClick={onClick} 
+    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 text-sm ml-2 ${
+      active 
+      ? 'bg-gray-700 text-white font-medium border-l-4 border-blue-500' 
+      : 'text-gray-400 hover:text-white hover:bg-gray-800'
+    }`}
+  >
+    <span className={`text-xs ${active ? 'text-blue-400' : 'opacity-70'}`}>{icon}</span>
+    <span>{label}</span>
+  </button>
+);
+
 const StatCard = ({ title, count, icon, color }) => (<div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-start hover:shadow-md transition-shadow"><div><p className={`text-xs font-bold uppercase tracking-wider text-${color}-600 mb-1`}>{title}</p><h2 className="text-3xl font-bold text-gray-800">{count}</h2></div><div className={`p-3 rounded-xl bg-${color}-50 text-${color}-500 text-xl`}>{icon}</div></div>);
 const StatusBadge = ({ status }) => { const colors = { onaylandi: 'bg-green-100 text-green-700', reddedildi: 'bg-red-100 text-red-700', beklemede: 'bg-yellow-100 text-yellow-700' }; return <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide ${colors[status] || 'bg-gray-100'}`}>{status}</span>; };
-const AddBtn = ({ onClick, label }) => (<button onClick={onClick} className="bg-brand-blue text-white px-5 py-2.5 rounded-lg shadow-lg shadow-blue-200 hover:bg-blue-800 transition flex items-center gap-2 font-medium"><FaPlus /> {label}</button>);
+
+// RENK DÜZELTMESİ YAPILMIŞ EKLE BUTONU
+const AddBtn = ({ onClick, label }) => (
+  <button 
+    onClick={onClick} 
+    className="bg-blue-600 text-white px-5 py-2.5 rounded-lg shadow-lg shadow-blue-200 hover:bg-blue-800 transition flex items-center gap-2 font-medium"
+  >
+    <FaPlus /> {label}
+  </button>
+);
+
 const TableAction = ({ onClick, icon, color }) => (<button onClick={onClick} className={`p-2 rounded-lg text-${color}-500 hover:bg-${color}-50 transition`}>{icon}</button>);
 const DetailRow = ({ label, value }) => <div className="flex border-b border-gray-100 py-3"><span className="w-1/3 font-bold text-gray-500 text-sm">{label}</span><span className="w-2/3 text-sm font-medium text-gray-800">{value}</span></div>;
 

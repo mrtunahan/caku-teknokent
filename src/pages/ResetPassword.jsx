@@ -44,7 +44,7 @@ const ResetPassword = () => {
             <label className="block text-gray-700 text-sm font-bold mb-2">Yeni Şifre</label>
             <div className="relative">
               <FaLock className="absolute left-3 top-3.5 text-gray-400" />
-              <input type="password" required className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-blue" 
+              <input type="password" required className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600" 
                 placeholder="Yeni şifreniz" value={password} onChange={e => setPassword(e.target.value)} />
             </div>
           </div>
@@ -52,7 +52,7 @@ const ResetPassword = () => {
             <label className="block text-gray-700 text-sm font-bold mb-2">Şifre Tekrar</label>
             <div className="relative">
               <FaLock className="absolute left-3 top-3.5 text-gray-400" />
-              <input type="password" required className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-blue" 
+              <input type="password" required className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600" 
                 placeholder="Şifreyi onaylayın" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
             </div>
           </div>

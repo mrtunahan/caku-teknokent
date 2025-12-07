@@ -78,7 +78,7 @@ const NewsDetail = () => {
                 <div className="text-gray-400 py-20">Görsel Bulunmuyor</div>
              )}
             
-            <div className="absolute top-4 left-4 bg-brand-blue text-white px-4 py-1.5 rounded-lg text-sm font-bold uppercase shadow-lg tracking-wide">
+            <div className="absolute top-4 left-4 bbg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold uppercase shadow-lg tracking-wide">
               {news.category}
             </div>
           </div>
