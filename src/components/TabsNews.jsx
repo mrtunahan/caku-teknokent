@@ -26,6 +26,7 @@ const TabsNews = () => {
   // Sekmeye göre "Tümünü Görüntüle" linkini belirle
   const getViewAllLink = (tab) => {
     // Artık hepsi /liste/... formatında olacak
+    // tab değişkeni zaten 'haberler', 'duyurular', 'etkinlikler', 'firmalar' değerlerinden birini alıyor
     return `/liste/${tab}`;
   };
 

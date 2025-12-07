@@ -1,24 +1,45 @@
+import { useEffect, useState } from "react";
+import api from "../api";
 import PageHeader from "../components/PageHeader";
 
 const Offices = () => {
-  const offices = [
-    { title: "Kuluçka Merkezi", img: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600" },
-    { title: "Toplantı Salonları", img: "https://images.unsplash.com/photo-1517502884422-41e157d4433c?w=600" },
-    { title: "Açık Ofisler", img: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=600" },
-  ];
+  const [data, setData] = useState({ title: "Ofisler ve Altyapı", content: "" });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await api.get("/pages/ofisler");
+        if (res.data.success) {
+          setData(res.data.data);
+        }
+      } catch (error) {
+        console.error("Veri yüklenemedi", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <PageHeader title="Ofisler ve Altyapı" />
-      <div className="container mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-        {offices.map((office, idx) => (
-          <div key={idx} className="group relative overflow-hidden rounded-xl shadow-lg h-64">
-            <img src={office.img} alt={office.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <h3 className="text-white text-xl font-bold">{office.title}</h3>
-            </div>
-          </div>
-        ))}
+      <PageHeader title={data.title} />
+
+      <div className="container mx-auto px-4 py-16 max-w-6xl">
+         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 md:p-12 min-h-[400px]">
+            {loading ? (
+                <div className="flex flex-col items-center justify-center h-full py-20 text-gray-400 space-y-4">
+                     <div className="w-10 h-10 border-4 border-gray-200 border-t-gray-400 rounded-full animate-spin"></div>
+                     <p>Yükleniyor...</p>
+                </div>
+            ) : (
+                <div 
+                    className="prose prose-lg prose-blue max-w-none text-gray-700 prose-img:rounded-xl prose-img:shadow-md prose-img:w-full prose-img:object-cover"
+                    dangerouslySetInnerHTML={{ __html: data.content }} 
+                />
+            )}
+         </div>
       </div>
     </div>
   );

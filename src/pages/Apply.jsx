@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { FaPaperPlane, FaInfoCircle, FaCheckCircle } from "react-icons/fa";
+import { FaPaperPlane } from "react-icons/fa";
+import { useNavigate } from "react-router-dom"; // Import edilmiş durumda
 
 import api from "../api";
 
 const Apply = () => {
-  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate(); // Hook tanımlandı
 
   // Ana sayfadaki grafik ile uyumlu Sektör Listesi
   const sectorList = [
@@ -30,7 +31,7 @@ const Apply = () => {
     egitim_durumu: "Lisans Öğrencisi",
     sirketlesme_durumu: "Şirketim Yok (Girişimci)",
     proje_adi: "",
-    proje_alani: "", // Sektör buradan seçilecek
+    proje_alani: "", 
     nace_kodu: "",
     anahtar_kelimeler: "",
     proje_ozeti: "",
@@ -53,46 +54,24 @@ const Apply = () => {
 
   // Formu Gönder
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    const response = await api.post('/applications', formData); // URL kısaldı
-    
-    if (response.data.success) {
-      setSubmitted(true);
-      window.scrollTo(0, 0);
+    try {
+      const response = await api.post('/applications', formData);
+      
+      if (response.data.success) {
+        // Başarılı olursa alert ver ve yönlendir
+        alert("Başvurunuz başarıyla alındı! Ana sayfaya yönlendiriliyorsunuz.");
+        navigate("/"); 
+      }
+    } catch (error) {
+      console.error("Başvuru hatası:", error);
+      alert("Başvuru gönderilirken bir hata oluştu: " + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Başvuru hatası:", error);
-    alert("Başvuru gönderilirken bir hata oluştu: " + (error.response?.data?.message || error.message));
-  } finally {
-    setLoading(false);
-  }
-};
-
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-4 flex items-center justify-center">
-        <motion.div 
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="bg-white p-10 rounded-2xl shadow-xl text-center max-w-lg"
-        >
-          <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
-            <FaCheckCircle />
-          </div>
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">Başvurunuz Alındı!</h2>
-          <p className="text-gray-600 mb-8">
-            Ön başvurunuz başarıyla sistemimize kaydedilmiştir. Değerlendirme sürecinin ardından uzmanlarımız sizinle iletişime geçecektir.
-          </p>
-          <a href="/" className="bg-brand-blue text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-            Ana Sayfaya Dön
-          </a>
-        </motion.div>
-      </div>
-    );
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-4">
@@ -173,7 +152,6 @@ const Apply = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  <div>
                     <label className="label-style">Proje Alanı / Sektör *</label>
-                    {/* GÜNCELLENEN KISIM: SEKTÖR SEÇİMİ */}
                     <select required name="proje_alani" onChange={handleChange} className="input-style">
                       <option value="">Seçiniz</option>
                       {sectorList.map((sector, index) => (

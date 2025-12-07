@@ -5,18 +5,21 @@ const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const path = require('path');
 const fs = require('fs');
-const helmet = require('helmet'); // <--- 1. YENİ: Buraya ekleyin
+const helmet = require('helmet');
 require('dotenv').config();
 
-// Rota ve Model Importları (Aynı kalsın)
+// --- 1. ROTA DOSYALARINI ÇAĞIR ---
 const authRoutes = require('./routes/authRoutes');
+const projectRoutes = require('./routes/projectRoutes');
 const careerRoutes = require('./routes/careerRoutes');
 const newsRoutes = require('./routes/newsRoutes');
 const companyRoutes = require('./routes/companyRoutes');
 const contactRoutes = require('./routes/contactRoutes');
-const projectRoutes = require('./routes/projectRoutes');
+const pageRoutes = require('./routes/pageRoutes'); // KVKK, Hakkımızda vb. için
+const boardRoutes = require('./routes/boardRoutes'); // Yönetim Kurulu için
+const stakeholderRoutes = require('./routes/stakeholderRoutes'); // Paydaşlar için
 
-// Veritabanı (Aynı kalsın)
+// --- 2. VERİTABANI VE MODELLER ---
 const sequelize = require('./config/database');
 require('./models/User');
 require('./models/JobApplication');
@@ -24,26 +27,23 @@ require('./models/News');
 require('./models/Company');
 require('./models/Contact');
 require('./models/ProjectApplication');
+require('./models/PageContent'); // Sayfa İçerikleri Modeli
+require('./models/BoardMember'); // Yönetim Kurulu Modeli
+require('./models/Stakeholder'); // Paydaşlar Modeli
 
-// --- 1. APP BAŞLATMA ---
+// --- 3. UYGULAMA AYARLARI ---
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// --- 2. GÜVENLİK VE MIDDLEWARE ---
-
-// A. Helmet (Güvenlik Başlıkları) - <--- 2. YENİ: BURAYA EKLEYİN
+// Güvenlik (Helmet) - Resimlere izin verecek şekilde
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" } 
 }));
-// NOT: "cross-origin" ayarı, Frontend'in (port 5173) Backend'den (port 5000) 
-// resim yükleyebilmesi için gereklidir. Yoksa resimler kırık görünür.
 
-// B. Loglama
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// C. Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
   max: 200,
@@ -51,20 +51,23 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// D. Standartlar
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// --- 3. RESİM SERVİSİ ---
-// (Burası ve altındaki kodlar aynen kalacak, değiştirmeyin)
+// --- 4. RESİM SERVİSİ (STATİK DOSYALAR) ---
 const uploadsPath = path.join(__dirname, '../uploads');
 const imagesPath = path.join(uploadsPath, 'images');
 
+// Klasörleri oluştur (Yoksa hata vermesin)
+if (!fs.existsSync(imagesPath)) {
+    fs.mkdirSync(imagesPath, { recursive: true });
+}
+
 app.use('/uploads', express.static(uploadsPath));
 
+// Manuel Resim Servisi (Garanti Yöntem)
 app.get('/uploads/images/:filename', (req, res) => {
-    // ... (Mevcut kodunuz aynen kalsın) ...
     const filename = req.params.filename;
     const filePath = path.join(imagesPath, filename);
 
@@ -74,7 +77,6 @@ app.get('/uploads/images/:filename', (req, res) => {
 
     fs.access(filePath, fs.constants.F_OK, (err) => {
         if (err) {
-            console.error(`❌ Resim Bulunamadı: ${filename}`);
             return res.status(404).json({ success: false, message: 'Resim bulunamadı' });
         }
         res.sendFile(filePath, (err) => {
@@ -83,44 +85,49 @@ app.get('/uploads/images/:filename', (req, res) => {
     });
 });
 
-// ... (Diğer rotalar ve sunucu başlatma kodları aynen kalsın) ...
-// --- 4. API ROTALARI ---
+// --- 5. API ROTALARINI TANIMLA ---
 app.use('/api/auth', authRoutes);
-app.use('/api', projectRoutes);
+app.use('/api', projectRoutes); // /api/applications olarak çalışır
 app.use('/api/career', careerRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/pages', pageRoutes); // KVKK hatasını çözen satır budur!
+app.use('/api/board-members', boardRoutes);
+app.use('/api/stakeholders', stakeholderRoutes);
 
+// Sağlık Kontrolü
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server çalışıyor!' });
+  res.json({ status: 'OK', message: 'Server aktif.' });
 });
 
+// 404 Handler
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Endpoint bulunamadı' });
+  res.status(404).json({ success: false, message: 'Endpoint bulunamadı.' });
 });
 
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Sunucu Hatası:', err.stack);
   res.status(500).json({ 
     success: false, 
-    message: 'Sunucu hatası',
+    message: 'Sunucu tarafında bir hata oluştu.',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
 
+// --- 6. SUNUCUYU BAŞLAT ---
 const startServer = async () => {
   try {
     await sequelize.authenticate();
-    console.log('✅ Veritabanı bağlantısı başarılı');
-    await sequelize.sync({ alter: true });
+    console.log('✅ Veritabanı bağlantısı başarılı.');
+    await sequelize.sync({ alter: true }); // Tabloları güncelle
     
     app.listen(PORT, () => {
-      console.log(`🚀 Server ${PORT} portunda çalışıyor`);
-      console.log(`📂 Resim yolu aktif: ${imagesPath}`);
+      console.log(`🚀 Server http://localhost:${PORT} adresinde çalışıyor.`);
     });
   } catch (error) {
-    console.error('❌ Sunucu hatası:', error);
+    console.error('❌ Sunucu başlatılamadı:', error);
   }
 };
 

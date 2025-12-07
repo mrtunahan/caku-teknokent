@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import api from "../api";
 import { getImageUrl } from "../utils/imageHelper";
 import PageHeader from "../components/PageHeader";
@@ -42,7 +42,7 @@ const NewsList = () => {
     };
 
     fetchData();
-  }, [category]); // Kategori değişirse tekrar çalıştır
+  }, [category]); // Kategori değişirse (örn: menüden tıklanırsa) tekrar çalıştır
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -89,7 +89,10 @@ const NewsList = () => {
                     </h3>
                   </Link>
 
-                  <div className="text-gray-500 text-sm line-clamp-3 mb-4 flex-grow" dangerouslySetInnerHTML={{__html: item.content}}></div>
+                  {/* İçerik özeti (HTML etiketlerini temizleyerek) */}
+                  <div className="text-gray-500 text-sm line-clamp-3 mb-4 flex-grow">
+                    {item.content ? item.content.replace(/<[^>]+>/g, '') : ''}
+                  </div>
 
                   <Link to={`/haber-detay/${item.id}`} className="inline-flex items-center gap-2 text-brand-blue font-semibold text-sm group/btn mt-auto">
                     Devamını Oku 
