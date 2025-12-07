@@ -15,9 +15,9 @@ const careerRoutes = require('./routes/careerRoutes');
 const newsRoutes = require('./routes/newsRoutes');
 const companyRoutes = require('./routes/companyRoutes');
 const contactRoutes = require('./routes/contactRoutes');
-const pageRoutes = require('./routes/pageRoutes'); // KVKK, Hakkımızda vb. için
-const boardRoutes = require('./routes/boardRoutes'); // Yönetim Kurulu için
-const stakeholderRoutes = require('./routes/stakeholderRoutes'); // Paydaşlar için
+const pageRoutes = require('./routes/pageRoutes'); 
+const boardRoutes = require('./routes/boardRoutes'); 
+const stakeholderRoutes = require('./routes/stakeholderRoutes'); 
 
 // --- 2. VERİTABANI VE MODELLER ---
 const sequelize = require('./config/database');
@@ -27,15 +27,15 @@ require('./models/News');
 require('./models/Company');
 require('./models/Contact');
 require('./models/ProjectApplication');
-require('./models/PageContent'); // Sayfa İçerikleri Modeli
-require('./models/BoardMember'); // Yönetim Kurulu Modeli
-require('./models/Stakeholder'); // Paydaşlar Modeli
+require('./models/PageContent'); 
+require('./models/BoardMember'); 
+require('./models/Stakeholder'); 
 
 // --- 3. UYGULAMA AYARLARI ---
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Güvenlik (Helmet) - Resimlere izin verecek şekilde
+// Güvenlik (Helmet) 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" } 
 }));
@@ -44,9 +44,10 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
+// Rate Limit (Sayıyı artırdık ki admin paneli hata vermesin)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 1000,
+  max: 1000, 
   message: { success: false, message: "Çok fazla istek gönderdiniz." }
 });
 app.use('/api', limiter);
@@ -55,18 +56,16 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// --- 4. RESİM SERVİSİ (STATİK DOSYALAR) ---
+// --- 4. RESİM SERVİSİ ---
 const uploadsPath = path.join(__dirname, '../uploads');
 const imagesPath = path.join(uploadsPath, 'images');
 
-// Klasörleri oluştur (Yoksa hata vermesin)
 if (!fs.existsSync(imagesPath)) {
     fs.mkdirSync(imagesPath, { recursive: true });
 }
 
 app.use('/uploads', express.static(uploadsPath));
 
-// Manuel Resim Servisi (Garanti Yöntem)
 app.get('/uploads/images/:filename', (req, res) => {
     const filename = req.params.filename;
     const filePath = path.join(imagesPath, filename);
@@ -85,14 +84,14 @@ app.get('/uploads/images/:filename', (req, res) => {
     });
 });
 
-// --- 5. API ROTALARINI TANIMLA ---
+// --- 5. API ROTALARI ---
 app.use('/api/auth', authRoutes);
-app.use('/api', projectRoutes); // /api/applications olarak çalışır
+app.use('/api', projectRoutes); 
 app.use('/api/career', careerRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/contact', contactRoutes);
-app.use('/api/pages', pageRoutes); // KVKK hatasını çözen satır budur!
+app.use('/api/pages', pageRoutes); 
 app.use('/api/board-members', boardRoutes);
 app.use('/api/stakeholders', stakeholderRoutes);
 
@@ -123,6 +122,8 @@ const startServer = async () => {
     console.log('✅ Veritabanı bağlantısı başarılı.');
     await sequelize.sync({ alter: true }); // Tabloları güncelle
     
+    
+
     app.listen(PORT, () => {
       console.log(`🚀 Server http://localhost:${PORT} adresinde çalışıyor.`);
     });

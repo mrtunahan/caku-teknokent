@@ -19,7 +19,7 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  if (location.pathname === '/admin/profile' || location.pathname.includes('profile')) {
+  if (location.pathname.startsWith('/admin')) {
     return null;
   }
   // MENÜ YAPISI GÜNCELLENDİ ("Ortaklarımız" kaldırıldı)
